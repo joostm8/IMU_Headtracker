@@ -14,12 +14,12 @@
 
 #include <avr/io.h>
 #include "TWI_Master.h"
+#include "MahonyAHRS.h"
 
 static enum programState{
-	startup,
 	calibration,
 	operation
-	} pState = startup;
+	} pState = calibration;
 	
 static enum bluetoothState{
 	startup,
