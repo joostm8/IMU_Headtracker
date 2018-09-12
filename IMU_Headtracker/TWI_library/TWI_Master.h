@@ -49,9 +49,10 @@
 ****************************************************************************/
 #define TWI_BUFFER_SIZE 4   // Set this to the largest message size that will be sent including address byte.
 
-#define TWI_TWBR            0x0C         // TWI Bit rate Register setting.
+#define TWI_TWBR            0x02        // TWI Bit rate Register setting.
                                         // Se Application note for detailed 
                                         // information on setting this value.
+										// 2 yields 400kHz (fast mode) on 8 MHz µC
 
 /****************************************************************************
   Global definitions
