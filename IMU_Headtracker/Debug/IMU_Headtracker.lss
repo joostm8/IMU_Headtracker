@@ -3,31 +3,31 @@ IMU_Headtracker.elf:     file format elf32-avr
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .data         00000002  00800100  000002a8  0000033c  2**0
+  0 .data         00000002  00800100  00000342  000003d6  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  1 .text         000002a8  00000000  00000000  00000094  2**1
+  1 .text         00000342  00000000  00000000  00000094  2**1
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  2 .bss          00000007  00800102  00800102  0000033e  2**0
+  2 .bss          0000000d  00800102  00800102  000003d8  2**0
                   ALLOC
-  3 .comment      00000030  00000000  00000000  0000033e  2**0
+  3 .comment      00000030  00000000  00000000  000003d8  2**0
                   CONTENTS, READONLY
-  4 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  00000370  2**2
+  4 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  00000408  2**2
                   CONTENTS, READONLY
-  5 .debug_aranges 00000050  00000000  00000000  000003b0  2**0
+  5 .debug_aranges 00000050  00000000  00000000  00000448  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_info   00000873  00000000  00000000  00000400  2**0
+  6 .debug_info   00000873  00000000  00000000  00000498  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_abbrev 00000740  00000000  00000000  00000c73  2**0
+  7 .debug_abbrev 00000740  00000000  00000000  00000d0b  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_line   000003ee  00000000  00000000  000013b3  2**0
+  8 .debug_line   000003ee  00000000  00000000  0000144b  2**0
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_frame  000000b8  00000000  00000000  000017a4  2**2
+  9 .debug_frame  000000b8  00000000  00000000  0000183c  2**2
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_str    00000464  00000000  00000000  0000185c  2**0
+ 10 .debug_str    00000464  00000000  00000000  000018f4  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_loc    0000019b  00000000  00000000  00001cc0  2**0
+ 11 .debug_loc    0000019b  00000000  00000000  00001d58  2**0
                   CONTENTS, READONLY, DEBUGGING
- 12 .debug_ranges 00000040  00000000  00000000  00001e5b  2**0
+ 12 .debug_ranges 00000040  00000000  00000000  00001ef3  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -51,95 +51,95 @@ Disassembly of section .text:
   3c:	0c 94 a2 00 	jmp	0x144	; 0x144 <__bad_interrupt>
   40:	0c 94 a2 00 	jmp	0x144	; 0x144 <__bad_interrupt>
   44:	0c 94 a2 00 	jmp	0x144	; 0x144 <__bad_interrupt>
-  48:	0c 94 a2 00 	jmp	0x144	; 0x144 <__bad_interrupt>
-  4c:	0c 94 a2 00 	jmp	0x144	; 0x144 <__bad_interrupt>
-  50:	0c 94 a2 00 	jmp	0x144	; 0x144 <__bad_interrupt>
+  48:	0c 94 c1 00 	jmp	0x182	; 0x182 <__vector_18>
+  4c:	0c 94 cb 00 	jmp	0x196	; 0x196 <__vector_19>
+  50:	0c 94 00 01 	jmp	0x200	; 0x200 <__vector_20>
   54:	0c 94 a2 00 	jmp	0x144	; 0x144 <__bad_interrupt>
   58:	0c 94 a2 00 	jmp	0x144	; 0x144 <__bad_interrupt>
   5c:	0c 94 a2 00 	jmp	0x144	; 0x144 <__bad_interrupt>
-  60:	0c 94 cb 00 	jmp	0x196	; 0x196 <__vector_24>
+  60:	0c 94 18 01 	jmp	0x230	; 0x230 <__vector_24>
   64:	0c 94 a2 00 	jmp	0x144	; 0x144 <__bad_interrupt>
-  68:	e6 00       	.word	0x00e6	; ????
-  6a:	38 01       	movw	r6, r16
-  6c:	38 01       	movw	r6, r16
-  6e:	38 01       	movw	r6, r16
-  70:	38 01       	movw	r6, r16
-  72:	38 01       	movw	r6, r16
-  74:	38 01       	movw	r6, r16
-  76:	38 01       	movw	r6, r16
-  78:	e6 00       	.word	0x00e6	; ????
-  7a:	38 01       	movw	r6, r16
-  7c:	38 01       	movw	r6, r16
-  7e:	38 01       	movw	r6, r16
-  80:	38 01       	movw	r6, r16
-  82:	38 01       	movw	r6, r16
-  84:	38 01       	movw	r6, r16
-  86:	38 01       	movw	r6, r16
-  88:	e8 00       	.word	0x00e8	; ????
-  8a:	38 01       	movw	r6, r16
-  8c:	38 01       	movw	r6, r16
-  8e:	38 01       	movw	r6, r16
-  90:	38 01       	movw	r6, r16
-  92:	38 01       	movw	r6, r16
-  94:	38 01       	movw	r6, r16
-  96:	38 01       	movw	r6, r16
-  98:	38 01       	movw	r6, r16
-  9a:	38 01       	movw	r6, r16
-  9c:	38 01       	movw	r6, r16
-  9e:	38 01       	movw	r6, r16
-  a0:	38 01       	movw	r6, r16
-  a2:	38 01       	movw	r6, r16
-  a4:	38 01       	movw	r6, r16
-  a6:	38 01       	movw	r6, r16
-  a8:	e8 00       	.word	0x00e8	; ????
-  aa:	38 01       	movw	r6, r16
-  ac:	38 01       	movw	r6, r16
-  ae:	38 01       	movw	r6, r16
-  b0:	38 01       	movw	r6, r16
-  b2:	38 01       	movw	r6, r16
-  b4:	38 01       	movw	r6, r16
-  b6:	38 01       	movw	r6, r16
-  b8:	38 01       	movw	r6, r16
-  ba:	38 01       	movw	r6, r16
-  bc:	38 01       	movw	r6, r16
-  be:	38 01       	movw	r6, r16
-  c0:	38 01       	movw	r6, r16
-  c2:	38 01       	movw	r6, r16
-  c4:	38 01       	movw	r6, r16
-  c6:	38 01       	movw	r6, r16
-  c8:	34 01       	movw	r6, r8
-  ca:	38 01       	movw	r6, r16
-  cc:	38 01       	movw	r6, r16
-  ce:	38 01       	movw	r6, r16
-  d0:	38 01       	movw	r6, r16
-  d2:	38 01       	movw	r6, r16
-  d4:	38 01       	movw	r6, r16
-  d6:	38 01       	movw	r6, r16
-  d8:	11 01       	movw	r2, r2
-  da:	38 01       	movw	r6, r16
-  dc:	38 01       	movw	r6, r16
-  de:	38 01       	movw	r6, r16
-  e0:	38 01       	movw	r6, r16
-  e2:	38 01       	movw	r6, r16
-  e4:	38 01       	movw	r6, r16
-  e6:	38 01       	movw	r6, r16
-  e8:	38 01       	movw	r6, r16
-  ea:	38 01       	movw	r6, r16
-  ec:	38 01       	movw	r6, r16
-  ee:	38 01       	movw	r6, r16
-  f0:	38 01       	movw	r6, r16
-  f2:	38 01       	movw	r6, r16
-  f4:	38 01       	movw	r6, r16
-  f6:	38 01       	movw	r6, r16
-  f8:	05 01       	movw	r0, r10
-  fa:	38 01       	movw	r6, r16
-  fc:	38 01       	movw	r6, r16
-  fe:	38 01       	movw	r6, r16
- 100:	38 01       	movw	r6, r16
- 102:	38 01       	movw	r6, r16
- 104:	38 01       	movw	r6, r16
- 106:	38 01       	movw	r6, r16
- 108:	23 01       	movw	r4, r6
+  68:	33 01       	movw	r6, r6
+  6a:	85 01       	movw	r16, r10
+  6c:	85 01       	movw	r16, r10
+  6e:	85 01       	movw	r16, r10
+  70:	85 01       	movw	r16, r10
+  72:	85 01       	movw	r16, r10
+  74:	85 01       	movw	r16, r10
+  76:	85 01       	movw	r16, r10
+  78:	33 01       	movw	r6, r6
+  7a:	85 01       	movw	r16, r10
+  7c:	85 01       	movw	r16, r10
+  7e:	85 01       	movw	r16, r10
+  80:	85 01       	movw	r16, r10
+  82:	85 01       	movw	r16, r10
+  84:	85 01       	movw	r16, r10
+  86:	85 01       	movw	r16, r10
+  88:	35 01       	movw	r6, r10
+  8a:	85 01       	movw	r16, r10
+  8c:	85 01       	movw	r16, r10
+  8e:	85 01       	movw	r16, r10
+  90:	85 01       	movw	r16, r10
+  92:	85 01       	movw	r16, r10
+  94:	85 01       	movw	r16, r10
+  96:	85 01       	movw	r16, r10
+  98:	85 01       	movw	r16, r10
+  9a:	85 01       	movw	r16, r10
+  9c:	85 01       	movw	r16, r10
+  9e:	85 01       	movw	r16, r10
+  a0:	85 01       	movw	r16, r10
+  a2:	85 01       	movw	r16, r10
+  a4:	85 01       	movw	r16, r10
+  a6:	85 01       	movw	r16, r10
+  a8:	35 01       	movw	r6, r10
+  aa:	85 01       	movw	r16, r10
+  ac:	85 01       	movw	r16, r10
+  ae:	85 01       	movw	r16, r10
+  b0:	85 01       	movw	r16, r10
+  b2:	85 01       	movw	r16, r10
+  b4:	85 01       	movw	r16, r10
+  b6:	85 01       	movw	r16, r10
+  b8:	85 01       	movw	r16, r10
+  ba:	85 01       	movw	r16, r10
+  bc:	85 01       	movw	r16, r10
+  be:	85 01       	movw	r16, r10
+  c0:	85 01       	movw	r16, r10
+  c2:	85 01       	movw	r16, r10
+  c4:	85 01       	movw	r16, r10
+  c6:	85 01       	movw	r16, r10
+  c8:	81 01       	movw	r16, r2
+  ca:	85 01       	movw	r16, r10
+  cc:	85 01       	movw	r16, r10
+  ce:	85 01       	movw	r16, r10
+  d0:	85 01       	movw	r16, r10
+  d2:	85 01       	movw	r16, r10
+  d4:	85 01       	movw	r16, r10
+  d6:	85 01       	movw	r16, r10
+  d8:	5e 01       	movw	r10, r28
+  da:	85 01       	movw	r16, r10
+  dc:	85 01       	movw	r16, r10
+  de:	85 01       	movw	r16, r10
+  e0:	85 01       	movw	r16, r10
+  e2:	85 01       	movw	r16, r10
+  e4:	85 01       	movw	r16, r10
+  e6:	85 01       	movw	r16, r10
+  e8:	85 01       	movw	r16, r10
+  ea:	85 01       	movw	r16, r10
+  ec:	85 01       	movw	r16, r10
+  ee:	85 01       	movw	r16, r10
+  f0:	85 01       	movw	r16, r10
+  f2:	85 01       	movw	r16, r10
+  f4:	85 01       	movw	r16, r10
+  f6:	85 01       	movw	r16, r10
+  f8:	52 01       	movw	r10, r4
+  fa:	85 01       	movw	r16, r10
+  fc:	85 01       	movw	r16, r10
+  fe:	85 01       	movw	r16, r10
+ 100:	85 01       	movw	r16, r10
+ 102:	85 01       	movw	r16, r10
+ 104:	85 01       	movw	r16, r10
+ 106:	85 01       	movw	r16, r10
+ 108:	70 01       	movw	r14, r0
 
 0000010a <__ctors_end>:
  10a:	11 24       	eor	r1, r1
@@ -153,8 +153,8 @@ Disassembly of section .text:
  116:	11 e0       	ldi	r17, 0x01	; 1
  118:	a0 e0       	ldi	r26, 0x00	; 0
  11a:	b1 e0       	ldi	r27, 0x01	; 1
- 11c:	e8 ea       	ldi	r30, 0xA8	; 168
- 11e:	f2 e0       	ldi	r31, 0x02	; 2
+ 11c:	e2 e4       	ldi	r30, 0x42	; 66
+ 11e:	f3 e0       	ldi	r31, 0x03	; 3
  120:	02 c0       	rjmp	.+4      	; 0x126 <__do_copy_data+0x10>
  122:	05 90       	lpm	r0, Z+
  124:	0d 92       	st	X+, r0
@@ -172,17 +172,17 @@ Disassembly of section .text:
  134:	1d 92       	st	X+, r1
 
 00000136 <.do_clear_bss_start>:
- 136:	a9 30       	cpi	r26, 0x09	; 9
+ 136:	af 30       	cpi	r26, 0x0F	; 15
  138:	b2 07       	cpc	r27, r18
  13a:	e1 f7       	brne	.-8      	; 0x134 <.do_clear_bss_loop>
  13c:	0e 94 a4 00 	call	0x148	; 0x148 <main>
- 140:	0c 94 52 01 	jmp	0x2a4	; 0x2a4 <_exit>
+ 140:	0c 94 9f 01 	jmp	0x33e	; 0x33e <_exit>
 
 00000144 <__bad_interrupt>:
  144:	0c 94 00 00 	jmp	0	; 0x0 <__vectors>
 
 00000148 <main>:
- 148:	0e 94 c1 00 	call	0x182	; 0x182 <TWI_Master_Initialise>
+ 148:	0e 94 0e 01 	call	0x21c	; 0x21c <TWI_Master_Initialise>
  14c:	e1 ec       	ldi	r30, 0xC1	; 193
  14e:	f0 e0       	ldi	r31, 0x00	; 0
  150:	80 ec       	ldi	r24, 0xC0	; 192
@@ -208,208 +208,277 @@ Disassembly of section .text:
  17e:	00 00       	nop
  180:	ff cf       	rjmp	.-2      	; 0x180 <main+0x38>
 
-00000182 <TWI_Master_Initialise>:
+00000182 <__vector_18>:
+ 182:	1f 92       	push	r1
+ 184:	0f 92       	push	r0
+ 186:	0f b6       	in	r0, 0x3f	; 63
+ 188:	0f 92       	push	r0
+ 18a:	11 24       	eor	r1, r1
+ 18c:	0f 90       	pop	r0
+ 18e:	0f be       	out	0x3f, r0	; 63
+ 190:	0f 90       	pop	r0
+ 192:	1f 90       	pop	r1
+ 194:	18 95       	reti
+
+00000196 <__vector_19>:
+ 196:	1f 92       	push	r1
+ 198:	0f 92       	push	r0
+ 19a:	0f b6       	in	r0, 0x3f	; 63
+ 19c:	0f 92       	push	r0
+ 19e:	11 24       	eor	r1, r1
+ 1a0:	8f 93       	push	r24
+ 1a2:	9f 93       	push	r25
+ 1a4:	af 93       	push	r26
+ 1a6:	bf 93       	push	r27
+ 1a8:	ef 93       	push	r30
+ 1aa:	ff 93       	push	r31
+ 1ac:	80 91 02 01 	lds	r24, 0x0102	; 0x800102 <__data_end>
+ 1b0:	90 91 03 01 	lds	r25, 0x0103	; 0x800103 <__data_end+0x1>
+ 1b4:	a0 91 04 01 	lds	r26, 0x0104	; 0x800104 <__data_end+0x2>
+ 1b8:	b0 91 05 01 	lds	r27, 0x0105	; 0x800105 <__data_end+0x3>
+ 1bc:	01 96       	adiw	r24, 0x01	; 1
+ 1be:	a1 1d       	adc	r26, r1
+ 1c0:	b1 1d       	adc	r27, r1
+ 1c2:	80 93 02 01 	sts	0x0102, r24	; 0x800102 <__data_end>
+ 1c6:	90 93 03 01 	sts	0x0103, r25	; 0x800103 <__data_end+0x1>
+ 1ca:	a0 93 04 01 	sts	0x0104, r26	; 0x800104 <__data_end+0x2>
+ 1ce:	b0 93 05 01 	sts	0x0105, r27	; 0x800105 <__data_end+0x3>
+ 1d2:	80 91 02 01 	lds	r24, 0x0102	; 0x800102 <__data_end>
+ 1d6:	90 91 03 01 	lds	r25, 0x0103	; 0x800103 <__data_end+0x1>
+ 1da:	a0 91 04 01 	lds	r26, 0x0104	; 0x800104 <__data_end+0x2>
+ 1de:	b0 91 05 01 	lds	r27, 0x0105	; 0x800105 <__data_end+0x3>
+ 1e2:	e1 ec       	ldi	r30, 0xC1	; 193
+ 1e4:	f0 e0       	ldi	r31, 0x00	; 0
+ 1e6:	80 81       	ld	r24, Z
+ 1e8:	10 82       	st	Z, r1
+ 1ea:	ff 91       	pop	r31
+ 1ec:	ef 91       	pop	r30
+ 1ee:	bf 91       	pop	r27
+ 1f0:	af 91       	pop	r26
+ 1f2:	9f 91       	pop	r25
+ 1f4:	8f 91       	pop	r24
+ 1f6:	0f 90       	pop	r0
+ 1f8:	0f be       	out	0x3f, r0	; 63
+ 1fa:	0f 90       	pop	r0
+ 1fc:	1f 90       	pop	r1
+ 1fe:	18 95       	reti
+
+00000200 <__vector_20>:
+ 200:	1f 92       	push	r1
+ 202:	0f 92       	push	r0
+ 204:	0f b6       	in	r0, 0x3f	; 63
+ 206:	0f 92       	push	r0
+ 208:	11 24       	eor	r1, r1
+ 20a:	10 92 07 01 	sts	0x0107, r1	; 0x800107 <_ZL7txState+0x1>
+ 20e:	10 92 06 01 	sts	0x0106, r1	; 0x800106 <_ZL7txState>
+ 212:	0f 90       	pop	r0
+ 214:	0f be       	out	0x3f, r0	; 63
+ 216:	0f 90       	pop	r0
+ 218:	1f 90       	pop	r1
+ 21a:	18 95       	reti
+
+0000021c <TWI_Master_Initialise>:
     {
       msg[ i ] = TWI_buf[ i ];
     }
   }
   return( TWI_statusReg.lastTransOK );                                   
 }
- 182:	82 e0       	ldi	r24, 0x02	; 2
- 184:	80 93 b8 00 	sts	0x00B8, r24	; 0x8000b8 <__TEXT_REGION_LENGTH__+0x7e00b8>
- 188:	8f ef       	ldi	r24, 0xFF	; 255
- 18a:	80 93 bb 00 	sts	0x00BB, r24	; 0x8000bb <__TEXT_REGION_LENGTH__+0x7e00bb>
- 18e:	84 e0       	ldi	r24, 0x04	; 4
- 190:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
- 194:	08 95       	ret
+ 21c:	82 e0       	ldi	r24, 0x02	; 2
+ 21e:	80 93 b8 00 	sts	0x00B8, r24	; 0x8000b8 <__TEXT_REGION_LENGTH__+0x7e00b8>
+ 222:	8f ef       	ldi	r24, 0xFF	; 255
+ 224:	80 93 bb 00 	sts	0x00BB, r24	; 0x8000bb <__TEXT_REGION_LENGTH__+0x7e00bb>
+ 228:	84 e0       	ldi	r24, 0x04	; 4
+ 22a:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
+ 22e:	08 95       	ret
 
-00000196 <__vector_24>:
+00000230 <__vector_24>:
 This function is the Interrupt Service Routine (ISR), and called when the TWI interrupt is triggered;
 that is whenever a TWI event has occurred. This function should not be called directly from the main
 application.
 ****************************************************************************/
 ISR(TWI_vect)
 {
- 196:	1f 92       	push	r1
- 198:	0f 92       	push	r0
- 19a:	0f b6       	in	r0, 0x3f	; 63
- 19c:	0f 92       	push	r0
- 19e:	11 24       	eor	r1, r1
- 1a0:	2f 93       	push	r18
- 1a2:	3f 93       	push	r19
- 1a4:	8f 93       	push	r24
- 1a6:	9f 93       	push	r25
- 1a8:	af 93       	push	r26
- 1aa:	bf 93       	push	r27
- 1ac:	ef 93       	push	r30
- 1ae:	ff 93       	push	r31
+ 230:	1f 92       	push	r1
+ 232:	0f 92       	push	r0
+ 234:	0f b6       	in	r0, 0x3f	; 63
+ 236:	0f 92       	push	r0
+ 238:	11 24       	eor	r1, r1
+ 23a:	2f 93       	push	r18
+ 23c:	3f 93       	push	r19
+ 23e:	8f 93       	push	r24
+ 240:	9f 93       	push	r25
+ 242:	af 93       	push	r26
+ 244:	bf 93       	push	r27
+ 246:	ef 93       	push	r30
+ 248:	ff 93       	push	r31
   static unsigned char TWI_bufPtr;
   
   switch (TWSR)
- 1b0:	e0 91 b9 00 	lds	r30, 0x00B9	; 0x8000b9 <__TEXT_REGION_LENGTH__+0x7e00b9>
- 1b4:	8e 2f       	mov	r24, r30
- 1b6:	90 e0       	ldi	r25, 0x00	; 0
- 1b8:	fc 01       	movw	r30, r24
- 1ba:	38 97       	sbiw	r30, 0x08	; 8
- 1bc:	e1 35       	cpi	r30, 0x51	; 81
- 1be:	f1 05       	cpc	r31, r1
- 1c0:	08 f0       	brcs	.+2      	; 0x1c4 <__vector_24+0x2e>
- 1c2:	56 c0       	rjmp	.+172    	; 0x270 <__vector_24+0xda>
- 1c4:	ec 5c       	subi	r30, 0xCC	; 204
- 1c6:	ff 4f       	sbci	r31, 0xFF	; 255
- 1c8:	0c 94 4c 01 	jmp	0x298	; 0x298 <__tablejump2__>
+ 24a:	e0 91 b9 00 	lds	r30, 0x00B9	; 0x8000b9 <__TEXT_REGION_LENGTH__+0x7e00b9>
+ 24e:	8e 2f       	mov	r24, r30
+ 250:	90 e0       	ldi	r25, 0x00	; 0
+ 252:	fc 01       	movw	r30, r24
+ 254:	38 97       	sbiw	r30, 0x08	; 8
+ 256:	e1 35       	cpi	r30, 0x51	; 81
+ 258:	f1 05       	cpc	r31, r1
+ 25a:	08 f0       	brcs	.+2      	; 0x25e <__vector_24+0x2e>
+ 25c:	56 c0       	rjmp	.+172    	; 0x30a <__vector_24+0xda>
+ 25e:	ec 5c       	subi	r30, 0xCC	; 204
+ 260:	ff 4f       	sbci	r31, 0xFF	; 255
+ 262:	0c 94 99 01 	jmp	0x332	; 0x332 <__tablejump2__>
   {
     case TWI_START:             // START has been transmitted  
     case TWI_REP_START:         // Repeated START has been transmitted
       TWI_bufPtr = 0;                                     // Set buffer pointer to the TWI Address location
- 1cc:	10 92 02 01 	sts	0x0102, r1	; 0x800102 <__data_end>
+ 266:	10 92 08 01 	sts	0x0108, r1	; 0x800108 <TWI_bufPtr.1672>
     case TWI_MTX_ADR_ACK:       // SLA+W has been transmitted and ACK received
     case TWI_MTX_DATA_ACK:      // Data byte has been transmitted and ACK received
       if (TWI_bufPtr < TWI_msgSize)
- 1d0:	e0 91 02 01 	lds	r30, 0x0102	; 0x800102 <__data_end>
- 1d4:	80 91 04 01 	lds	r24, 0x0104	; 0x800104 <TWI_msgSize>
- 1d8:	e8 17       	cp	r30, r24
- 1da:	70 f4       	brcc	.+28     	; 0x1f8 <__vector_24+0x62>
+ 26a:	e0 91 08 01 	lds	r30, 0x0108	; 0x800108 <TWI_bufPtr.1672>
+ 26e:	80 91 0a 01 	lds	r24, 0x010A	; 0x80010a <TWI_msgSize>
+ 272:	e8 17       	cp	r30, r24
+ 274:	70 f4       	brcc	.+28     	; 0x292 <__vector_24+0x62>
       {
         TWDR = TWI_buf[TWI_bufPtr++];
- 1dc:	81 e0       	ldi	r24, 0x01	; 1
- 1de:	8e 0f       	add	r24, r30
- 1e0:	80 93 02 01 	sts	0x0102, r24	; 0x800102 <__data_end>
- 1e4:	f0 e0       	ldi	r31, 0x00	; 0
- 1e6:	eb 5f       	subi	r30, 0xFB	; 251
- 1e8:	fe 4f       	sbci	r31, 0xFE	; 254
- 1ea:	80 81       	ld	r24, Z
- 1ec:	80 93 bb 00 	sts	0x00BB, r24	; 0x8000bb <__TEXT_REGION_LENGTH__+0x7e00bb>
+ 276:	81 e0       	ldi	r24, 0x01	; 1
+ 278:	8e 0f       	add	r24, r30
+ 27a:	80 93 08 01 	sts	0x0108, r24	; 0x800108 <TWI_bufPtr.1672>
+ 27e:	f0 e0       	ldi	r31, 0x00	; 0
+ 280:	e5 5f       	subi	r30, 0xF5	; 245
+ 282:	fe 4f       	sbci	r31, 0xFE	; 254
+ 284:	80 81       	ld	r24, Z
+ 286:	80 93 bb 00 	sts	0x00BB, r24	; 0x8000bb <__TEXT_REGION_LENGTH__+0x7e00bb>
         TWCR = (1<<TWEN)|                                 // TWI Interface enabled
- 1f0:	85 e8       	ldi	r24, 0x85	; 133
- 1f2:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
- 1f6:	43 c0       	rjmp	.+134    	; 0x27e <__vector_24+0xe8>
+ 28a:	85 e8       	ldi	r24, 0x85	; 133
+ 28c:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
+ 290:	43 c0       	rjmp	.+134    	; 0x318 <__vector_24+0xe8>
                (1<<TWIE)|(1<<TWINT)|                      // Enable TWI Interrupt and clear the flag to send byte
                (0<<TWEA)|(0<<TWSTA)|(0<<TWSTO)|           //
                (0<<TWWC);                                 //  
       }else                    // Send STOP after last byte
       {
         TWI_statusReg.lastTransOK = TRUE;                 // Set status bits to completed successfully. 
- 1f8:	80 91 03 01 	lds	r24, 0x0103	; 0x800103 <TWI_statusReg>
- 1fc:	81 60       	ori	r24, 0x01	; 1
- 1fe:	80 93 03 01 	sts	0x0103, r24	; 0x800103 <TWI_statusReg>
+ 292:	80 91 09 01 	lds	r24, 0x0109	; 0x800109 <TWI_statusReg>
+ 296:	81 60       	ori	r24, 0x01	; 1
+ 298:	80 93 09 01 	sts	0x0109, r24	; 0x800109 <TWI_statusReg>
         TWCR = (1<<TWEN)|                                 // TWI Interface enabled
- 202:	84 e9       	ldi	r24, 0x94	; 148
- 204:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
- 208:	3a c0       	rjmp	.+116    	; 0x27e <__vector_24+0xe8>
+ 29c:	84 e9       	ldi	r24, 0x94	; 148
+ 29e:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
+ 2a2:	3a c0       	rjmp	.+116    	; 0x318 <__vector_24+0xe8>
                (0<<TWEA)|(0<<TWSTA)|(1<<TWSTO)|           // Initiate a STOP condition.
                (0<<TWWC);                                 //
       }
       break;
     case TWI_MRX_DATA_ACK:      // Data byte has been received and ACK transmitted
       TWI_buf[TWI_bufPtr++] = TWDR;
- 20a:	e0 91 02 01 	lds	r30, 0x0102	; 0x800102 <__data_end>
- 20e:	81 e0       	ldi	r24, 0x01	; 1
- 210:	8e 0f       	add	r24, r30
- 212:	80 93 02 01 	sts	0x0102, r24	; 0x800102 <__data_end>
- 216:	80 91 bb 00 	lds	r24, 0x00BB	; 0x8000bb <__TEXT_REGION_LENGTH__+0x7e00bb>
- 21a:	f0 e0       	ldi	r31, 0x00	; 0
- 21c:	eb 5f       	subi	r30, 0xFB	; 251
- 21e:	fe 4f       	sbci	r31, 0xFE	; 254
- 220:	80 83       	st	Z, r24
+ 2a4:	e0 91 08 01 	lds	r30, 0x0108	; 0x800108 <TWI_bufPtr.1672>
+ 2a8:	81 e0       	ldi	r24, 0x01	; 1
+ 2aa:	8e 0f       	add	r24, r30
+ 2ac:	80 93 08 01 	sts	0x0108, r24	; 0x800108 <TWI_bufPtr.1672>
+ 2b0:	80 91 bb 00 	lds	r24, 0x00BB	; 0x8000bb <__TEXT_REGION_LENGTH__+0x7e00bb>
+ 2b4:	f0 e0       	ldi	r31, 0x00	; 0
+ 2b6:	e5 5f       	subi	r30, 0xF5	; 245
+ 2b8:	fe 4f       	sbci	r31, 0xFE	; 254
+ 2ba:	80 83       	st	Z, r24
     case TWI_MRX_ADR_ACK:       // SLA+R has been transmitted and ACK received
       if (TWI_bufPtr < (TWI_msgSize-1) )                  // Detect the last byte to NACK it.
- 222:	20 91 02 01 	lds	r18, 0x0102	; 0x800102 <__data_end>
- 226:	30 e0       	ldi	r19, 0x00	; 0
- 228:	80 91 04 01 	lds	r24, 0x0104	; 0x800104 <TWI_msgSize>
- 22c:	90 e0       	ldi	r25, 0x00	; 0
- 22e:	01 97       	sbiw	r24, 0x01	; 1
- 230:	28 17       	cp	r18, r24
- 232:	39 07       	cpc	r19, r25
- 234:	24 f4       	brge	.+8      	; 0x23e <__vector_24+0xa8>
+ 2bc:	20 91 08 01 	lds	r18, 0x0108	; 0x800108 <TWI_bufPtr.1672>
+ 2c0:	30 e0       	ldi	r19, 0x00	; 0
+ 2c2:	80 91 0a 01 	lds	r24, 0x010A	; 0x80010a <TWI_msgSize>
+ 2c6:	90 e0       	ldi	r25, 0x00	; 0
+ 2c8:	01 97       	sbiw	r24, 0x01	; 1
+ 2ca:	28 17       	cp	r18, r24
+ 2cc:	39 07       	cpc	r19, r25
+ 2ce:	24 f4       	brge	.+8      	; 0x2d8 <__vector_24+0xa8>
       {
         TWCR = (1<<TWEN)|                                 // TWI Interface enabled
- 236:	85 ec       	ldi	r24, 0xC5	; 197
- 238:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
- 23c:	20 c0       	rjmp	.+64     	; 0x27e <__vector_24+0xe8>
+ 2d0:	85 ec       	ldi	r24, 0xC5	; 197
+ 2d2:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
+ 2d6:	20 c0       	rjmp	.+64     	; 0x318 <__vector_24+0xe8>
                (1<<TWIE)|(1<<TWINT)|                      // Enable TWI Interrupt and clear the flag to read next byte
                (1<<TWEA)|(0<<TWSTA)|(0<<TWSTO)|           // Send ACK after reception
                (0<<TWWC);                                 //  
       }else                    // Send NACK after next reception
       {
         TWCR = (1<<TWEN)|                                 // TWI Interface enabled
- 23e:	85 e8       	ldi	r24, 0x85	; 133
- 240:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
- 244:	1c c0       	rjmp	.+56     	; 0x27e <__vector_24+0xe8>
+ 2d8:	85 e8       	ldi	r24, 0x85	; 133
+ 2da:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
+ 2de:	1c c0       	rjmp	.+56     	; 0x318 <__vector_24+0xe8>
                (0<<TWEA)|(0<<TWSTA)|(0<<TWSTO)|           // Send NACK after reception
                (0<<TWWC);                                 // 
       }    
       break; 
     case TWI_MRX_DATA_NACK:     // Data byte has been received and NACK transmitted
       TWI_buf[TWI_bufPtr] = TWDR;
- 246:	80 91 bb 00 	lds	r24, 0x00BB	; 0x8000bb <__TEXT_REGION_LENGTH__+0x7e00bb>
- 24a:	e0 91 02 01 	lds	r30, 0x0102	; 0x800102 <__data_end>
- 24e:	f0 e0       	ldi	r31, 0x00	; 0
- 250:	eb 5f       	subi	r30, 0xFB	; 251
- 252:	fe 4f       	sbci	r31, 0xFE	; 254
- 254:	80 83       	st	Z, r24
+ 2e0:	80 91 bb 00 	lds	r24, 0x00BB	; 0x8000bb <__TEXT_REGION_LENGTH__+0x7e00bb>
+ 2e4:	e0 91 08 01 	lds	r30, 0x0108	; 0x800108 <TWI_bufPtr.1672>
+ 2e8:	f0 e0       	ldi	r31, 0x00	; 0
+ 2ea:	e5 5f       	subi	r30, 0xF5	; 245
+ 2ec:	fe 4f       	sbci	r31, 0xFE	; 254
+ 2ee:	80 83       	st	Z, r24
       TWI_statusReg.lastTransOK = TRUE;                 // Set status bits to completed successfully. 
- 256:	80 91 03 01 	lds	r24, 0x0103	; 0x800103 <TWI_statusReg>
- 25a:	81 60       	ori	r24, 0x01	; 1
- 25c:	80 93 03 01 	sts	0x0103, r24	; 0x800103 <TWI_statusReg>
+ 2f0:	80 91 09 01 	lds	r24, 0x0109	; 0x800109 <TWI_statusReg>
+ 2f4:	81 60       	ori	r24, 0x01	; 1
+ 2f6:	80 93 09 01 	sts	0x0109, r24	; 0x800109 <TWI_statusReg>
       TWCR = (1<<TWEN)|                                 // TWI Interface enabled
- 260:	84 e9       	ldi	r24, 0x94	; 148
- 262:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
+ 2fa:	84 e9       	ldi	r24, 0x94	; 148
+ 2fc:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
              (0<<TWIE)|(1<<TWINT)|                      // Disable TWI Interrupt and clear the flag
              (0<<TWEA)|(0<<TWSTA)|(1<<TWSTO)|           // Initiate a STOP condition.
              (0<<TWWC);                                 //
       break;      
- 266:	0b c0       	rjmp	.+22     	; 0x27e <__vector_24+0xe8>
+ 300:	0b c0       	rjmp	.+22     	; 0x318 <__vector_24+0xe8>
     case TWI_ARB_LOST:          // Arbitration lost
       TWCR = (1<<TWEN)|                                 // TWI Interface enabled
- 268:	85 ea       	ldi	r24, 0xA5	; 165
- 26a:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
+ 302:	85 ea       	ldi	r24, 0xA5	; 165
+ 304:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
              (1<<TWIE)|(1<<TWINT)|                      // Enable TWI Interrupt and clear the flag
              (0<<TWEA)|(1<<TWSTA)|(0<<TWSTO)|           // Initiate a (RE)START condition.
              (0<<TWWC);                                 //
       break;
- 26e:	07 c0       	rjmp	.+14     	; 0x27e <__vector_24+0xe8>
+ 308:	07 c0       	rjmp	.+14     	; 0x318 <__vector_24+0xe8>
     case TWI_MTX_ADR_NACK:      // SLA+W has been transmitted and NACK received
     case TWI_MRX_ADR_NACK:      // SLA+R has been transmitted and NACK received    
     case TWI_MTX_DATA_NACK:     // Data byte has been transmitted and NACK received
     case TWI_BUS_ERROR:         // Bus error due to an illegal START or STOP condition
     default:     
       TWI_state = TWSR;                                 // Store TWSR and automatically sets clears noErrors bit.
- 270:	80 91 b9 00 	lds	r24, 0x00B9	; 0x8000b9 <__TEXT_REGION_LENGTH__+0x7e00b9>
- 274:	80 93 00 01 	sts	0x0100, r24	; 0x800100 <__data_start>
+ 30a:	80 91 b9 00 	lds	r24, 0x00B9	; 0x8000b9 <__TEXT_REGION_LENGTH__+0x7e00b9>
+ 30e:	80 93 00 01 	sts	0x0100, r24	; 0x800100 <__data_start>
                                                         // Reset TWI Interface
       TWCR = (1<<TWEN)|                                 // Enable TWI-interface and release TWI pins
- 278:	84 e0       	ldi	r24, 0x04	; 4
- 27a:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
+ 312:	84 e0       	ldi	r24, 0x04	; 4
+ 314:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7e00bc>
              (0<<TWIE)|(0<<TWINT)|                      // Disable Interrupt
              (0<<TWEA)|(0<<TWSTA)|(0<<TWSTO)|           // No Signal requests
              (0<<TWWC);                                 //
   }
 }
- 27e:	ff 91       	pop	r31
- 280:	ef 91       	pop	r30
- 282:	bf 91       	pop	r27
- 284:	af 91       	pop	r26
- 286:	9f 91       	pop	r25
- 288:	8f 91       	pop	r24
- 28a:	3f 91       	pop	r19
- 28c:	2f 91       	pop	r18
- 28e:	0f 90       	pop	r0
- 290:	0f be       	out	0x3f, r0	; 63
- 292:	0f 90       	pop	r0
- 294:	1f 90       	pop	r1
- 296:	18 95       	reti
+ 318:	ff 91       	pop	r31
+ 31a:	ef 91       	pop	r30
+ 31c:	bf 91       	pop	r27
+ 31e:	af 91       	pop	r26
+ 320:	9f 91       	pop	r25
+ 322:	8f 91       	pop	r24
+ 324:	3f 91       	pop	r19
+ 326:	2f 91       	pop	r18
+ 328:	0f 90       	pop	r0
+ 32a:	0f be       	out	0x3f, r0	; 63
+ 32c:	0f 90       	pop	r0
+ 32e:	1f 90       	pop	r1
+ 330:	18 95       	reti
 
-00000298 <__tablejump2__>:
- 298:	ee 0f       	add	r30, r30
- 29a:	ff 1f       	adc	r31, r31
- 29c:	05 90       	lpm	r0, Z+
- 29e:	f4 91       	lpm	r31, Z
- 2a0:	e0 2d       	mov	r30, r0
- 2a2:	09 94       	ijmp
+00000332 <__tablejump2__>:
+ 332:	ee 0f       	add	r30, r30
+ 334:	ff 1f       	adc	r31, r31
+ 336:	05 90       	lpm	r0, Z+
+ 338:	f4 91       	lpm	r31, Z
+ 33a:	e0 2d       	mov	r30, r0
+ 33c:	09 94       	ijmp
 
-000002a4 <_exit>:
- 2a4:	f8 94       	cli
+0000033e <_exit>:
+ 33e:	f8 94       	cli
 
-000002a6 <__stop_program>:
- 2a6:	ff cf       	rjmp	.-2      	; 0x2a6 <__stop_program>
+00000340 <__stop_program>:
+ 340:	ff cf       	rjmp	.-2      	; 0x340 <__stop_program>
