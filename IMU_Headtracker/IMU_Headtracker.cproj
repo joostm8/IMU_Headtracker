@@ -106,12 +106,14 @@
   <avrgcc.compiler.symbols.DefSymbols>
     <ListValues>
       <Value>DEBUG</Value>
+      <Value>F_CPU=8000000UL</Value>
     </ListValues>
   </avrgcc.compiler.symbols.DefSymbols>
   <avrgcc.compiler.directories.IncludePaths>
     <ListValues>
       <Value>%24(PackRepoDir)\atmel\ATmega_DFP\1.2.150\include</Value>
       <Value>../TWI_library</Value>
+      <Value>../UART_library</Value>
     </ListValues>
   </avrgcc.compiler.directories.IncludePaths>
   <avrgcc.compiler.optimization.level>Optimize (-O1)</avrgcc.compiler.optimization.level>
@@ -119,9 +121,15 @@
   <avrgcc.compiler.optimization.AllocateBytesNeededForEnum>True</avrgcc.compiler.optimization.AllocateBytesNeededForEnum>
   <avrgcc.compiler.optimization.DebugLevel>Default (-g2)</avrgcc.compiler.optimization.DebugLevel>
   <avrgcc.compiler.warnings.AllWarnings>True</avrgcc.compiler.warnings.AllWarnings>
+  <avrgcccpp.compiler.symbols.DefSymbols>
+    <ListValues>
+      <Value>F_CPU=8000000UL</Value>
+    </ListValues>
+  </avrgcccpp.compiler.symbols.DefSymbols>
   <avrgcccpp.compiler.directories.IncludePaths>
     <ListValues>
       <Value>../TWI_library</Value>
+      <Value>../UART_library</Value>
       <Value>../MahonyAHRS</Value>
     </ListValues>
   </avrgcccpp.compiler.directories.IncludePaths>
@@ -145,9 +153,16 @@
     <Compile Include="TWI_library\TWI_Master.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="UART_library\UART_transceiver.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="UART_library\UART_transceiver.h">
+      <SubType>compile</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="MahonyAHRS" />
+    <Folder Include="UART_library" />
     <Folder Include="TWI_library" />
   </ItemGroup>
   <Import Project="$(AVRSTUDIO_EXE_PATH)\\Vs\\Compiler.targets" />
