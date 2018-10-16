@@ -71,7 +71,9 @@ uint8_t UART_tx(unsigned char* tx_data_ptr, uint32_t length){
 			UCSR0B |= 1<<UDRIE0; 
 			//enable interrupt, ISR takes over from here
 			while(state == tx){
+				cli();
 				sleep_enable();
+				sei();
 				sleep_cpu();
 				sleep_disable();
 			}
@@ -106,7 +108,9 @@ uint8_t UART_tx_rx(unsigned char* tx_data_ptr, unsigned char* rx_data_ptr, uint3
 			UCSR0B |= 1<<UDRIE0;
 			//enable interrupt, ISR takes over from here
 			while(state != waiting){
+				cli();
 				sleep_enable();
+				sei();
 				sleep_cpu();
 				sleep_disable();
 			}

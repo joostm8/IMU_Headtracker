@@ -47,7 +47,8 @@
 /****************************************************************************
   TWI Status/Control register definitions
 ****************************************************************************/
-#define TWI_BUFFER_SIZE 4   // Set this to the largest message size that will be sent including address byte.
+#define TWI_BUFFER_SIZE 8   // Set this to the largest message size that will be sent including address byte.
+// with a burst write of at most 6 registers, 8 bytes is the largest size
 
 #define TWI_TWBR            0x02        // TWI Bit rate Register setting.
                                         // Se Application note for detailed 
