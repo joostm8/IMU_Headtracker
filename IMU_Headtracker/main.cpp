@@ -30,6 +30,7 @@ Includes
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include <string.h>
+#include <stdio.h>
 extern "C"{
 #include "TWI_Master.h"
 #include "UART_transceiver.h"
@@ -55,6 +56,7 @@ static float soft_iron_correction[3] = {0, 0, 0}; //x, y, z soft iron correction
 // also see https://github.com/kriswiner/MPU6050/wiki/Simple-and-Effective-Magnetometer-Calibration
 static int8_t magneto_sens_adjust[3] = {0, 0, 0}; // x, y, z sens adjust values
 // perhaps store sens adjust in eeprom since it doesn't change?
+
 /****************************************************************************
   Function declarations
 ****************************************************************************/
@@ -90,13 +92,29 @@ int main(void)
 	// enable global interrupts such that the I2C and UART interfaces can operate
 	sei();
 	
+	char info[50];
+	sprintf(info, "Please put the sensor down on a flat surface\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	_delay_ms(5000);
+	
 	// Initialise and calibrate MPU9250;
 	MPU_9250_initialise();
 	calibrate_accelerometer;
 	calibrate_gyroscope();
 	// put some code here so you know when to do the 8 pattern.
+	
+	sprintf(info, "Please wave the sensor in an 8 shape\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	_delay_ms(5000);
+	
 	get_magnetometer_scale();
 	calibrate_magnetometer();
+	
+	sprintf(info, "You can stop waving now \r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
 	
 	//gyro is by now set to 1000 dps, which is ok
 	//magneto can be set to +/- 4g mode
@@ -150,6 +168,18 @@ int main(void)
 		yaw = mahony.getYaw();
 		pitch = mahony.getPitch();
 		/* update Bluetooth controller with axes info */
+		// lets start by just printing to serial :)
+		
+		memset(info, 0, 50);
+		sprintf(info, "yaw %d\r\n", (int)yaw);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		sprintf(info, "roll %d\r\n", (int)roll);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		sprintf(info, "pitch %d\r\n", (int)pitch);
+		UART_tx((unsigned char*)info, strlen(info));
+		_delay_ms(10);
     }
 }
 
