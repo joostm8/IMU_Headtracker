@@ -66,26 +66,24 @@ uint8_t scale_magnetometer();
 ****************************************************************************/
 int main(void)
 {
-    /* Replace with your application code */
-	
-	/* Add startup code here*/
 	// Start I2C interface using provided library by microchip
 	// in TWI_Master.h, TWI_TWBR is set as 0x02, which yields 400kHz on 8MHz µC
-	TWI_Master_Initialise();	
-	// Initialise UART
-	// A baudrate of 38.4k is the highest achievable baudrate given a µC at 8 MHz
+	TWI_Master_Initialise();
+		
+	// Initialise UART at 38.4kbaud, the highest baudrate given F_CPU = 8 MHz
 	UART_initialise();
+	
 	// enable global interrupts such that the I2C and UART interfaces can operate
 	sei();
-	// Init (calibrate, init is ok) MPU9250
+	
+	// Initialise and calibrate MPU9250;
 	MPU_9250_initialise();
 	calibrate_accelerometer;
 	calibrate_gyroscope();
 	// put some code here so you know when to do the 8 pattern.
 	calibrate_magnetometer();
-	_delay_ms(500); // replace with some code that turns on an LED so you know when to place the device on a flat surface
-	// Gyroscope is easy, perform a couple of measurements, sum average over the duration, set registers.
-	// Accelerometer: first read the internal offsets, then sample and average, finally subtract sampled values from read values and set.
+	
+	
 	// Magnetometer: has no internal calibartion, just read the scaling settings. Hard iron and Soft iron effects must be compensated for in software.
 	
 	// Init Bluetooth controller (if needed)
@@ -140,13 +138,18 @@ uint8_t calibrate_accelerometer(){
 		_delay_ms(1);
 	}
 	
-	//take averages and invert sign,
+	//take averages, sign inversion is done when setting the biases
 	//note that integer accuracy loss isn't bad because
 	//the values are stored as integers on the MPU anyway.
 	int16_t accel_bias[3];
-	accel_bias[0] = (uint16_t)(-1 * sum[0]/1024); //x
-	accel_bias[1] = (uint16_t)(-1 * sum[1]/1024); //y
-	accel_bias[2] = (uint16_t)(-1 * sum[2]/1024 - 2048); //z, from which you must subtract 2048 (1g) since z axis measures 1g
+	accel_bias[0] = (int16_t)(sum[0]/1024); //x
+	accel_bias[1] = (int16_t)(sum[1]/1024); //y
+	accel_bias[2] = (int16_t)(sum[2]/1024); //z, from which you must subtract/add 2048 (1g) since z axis measures 1g
+	if(accel_bias[2] > 0)
+		accel_bias[2] -= 2048; //if z value is positive, subtract 1g;
+	else
+		accel_bias[2] += 2048; //otherwise, add 1g;
+	// note that the if else above does not expect more than 1g of offset (shouldn't be the case)
 	
 	set_accel_bias(accel_bias);
 	
@@ -217,12 +220,78 @@ int8_t set_accel_bias(int16_t* accel_bias){
 	return 0;
 }
 
+/****************************************************************************
+Call this function to calibrate the gyroscope.
+It calculates average offsets when the device is on a flat surface, and
+writes these offsets back to the device.
+****************************************************************************/
 uint8_t calibrate_gyroscope(){
+	// Set gyroscope range to 1000 dps since offset is stored in that format
+	uint8_t write_cmd[3];
+	write_cmd[0] = MPU_9250_Addr << 1; // write
+	write_cmd[1] = 27; // Gyro configuration register
+	write_cmd[2] = 0b00010000; // set GYRO_FS_SEL to 10 or 1000 dps;
+	TWI_Start_Transceiver_With_Data(write_cmd, 3);
 	
+	// take 1024 samples to average
+	uint8_t read_cmd[7];
+	int32_t sum[3];
+	write_cmd[0] = MPU_9250_Addr << 1; // write
+	write_cmd[1] = 67; // GYRO_XOUT_H;
+	
+	read_cmd[0] = MPU_9250_Addr << 1 | 1; // read
+	for(uint16_t i = 0; i < 1024; ++i){
+		TWI_Start_Transceiver_With_Data(write_cmd, 2);
+		TWI_Start_Transceiver_With_Data(read_cmd, 7);
+		TWI_Get_Data_From_Transceiver(read_cmd, 7);
+		
+		//accumulate immediately to limit RAM usage
+		sum[0] += read_cmd[1] << 8 | read_cmd[2];
+		sum[1] += read_cmd[3] << 8 | read_cmd[4];
+		sum[2] += read_cmd[5] << 8 | read_cmd[6];
+		
+		//update rate is 8kHz with default settings
+		_delay_us(125);
+	}
+	
+	//take averages, sign inversion is done when setting the biases
+	//note that integer accuracy loss isn't bad because
+	//the values are stored as integers on the MPU anyway.
+	int16_t gyro_bias[3];
+	gyro_bias[0] = (int16_t)(sum[0]/1024); //x
+	gyro_bias[1] = (int16_t)(sum[1]/1024); //y
+	gyro_bias[2] = (int16_t)(sum[2]/1024); //z
+	
+	set_gyro_bias(gyro_bias);
+	
+	return 0;
 }
 
+/****************************************************************************
+This function writes gyroscope biases to the offset registers.
+1000 dps format
+****************************************************************************/
 int8_t set_gyro_bias(int16_t* gyro_bias){
+	uint8_t data[6] = {0, 0, 0, 0, 0, 0};
+		
+	for(uint8_t i = 0 ; i < 3 ; ++i) {
+		gyro_bias[i] = (-gyro_bias[i]);
+	}
 	
+	data[0] = (gyro_bias[0] >> 8) & 0xff;
+	data[1] = (gyro_bias[0]) & 0xff;
+	data[2] = (gyro_bias[1] >> 8) & 0xff;
+	data[3] = (gyro_bias[1]) & 0xff;
+	data[4] = (gyro_bias[2] >> 8) & 0xff;
+	data[5] = (gyro_bias[2]) & 0xff;
+	
+	uint8_t cmd[8];
+	cmd[0] = MPU_9250_Addr << 1; //Write
+	cmd[1] = 19; //XG_OFFSET_H;
+	memcpy(&cmd[2], data, 6);// copy data over
+	TWI_Start_Transceiver_With_Data(cmd, 8);
+	
+	return 0;
 }
 
 uint8_t calibrate_magnetometer(){
