@@ -19,9 +19,8 @@ Includes
 Macros
 ****************************************************************************/
 #define UART_tx_enable()	UCSR0B |= 1<<TXEN0
-#define UART_tx_disable()	UCSR0B &= !(1<<TXEN0)
 #define UART_rx_enable()	UCSR0B |= 1<<RXEN0
-#define UART_rx_disable()	UCSR0B &= !(1<<RXEN0)
+#define UART_rx_disable()	UCSR0B &= ~(1<<RXEN0)
 #define UART_enable()		UCSR0B |= 1<<TXEN0 | 1<<RXEN0
 
 /****************************************************************************
@@ -47,9 +46,11 @@ Remember to enable interrupts from the main application after initializing the U
 ****************************************************************************/
 void UART_initialise(){
 	//initial UART config
+	UCSR0A &= !(1<<U2X0);// clear this bit, not properly cleaned up from bootloader
 	UCSR0B = 1<<RXCIE0 | 1<<TXCIE0 | 0<<UDRIE0 | 0<<UCSZ02;
 	UCSR0C = 1<<UCSZ01 | 1<<UCSZ00;
 	UBRR0 = 12;
+	UART_tx_enable();
 }
 
 /****************************************************************************
@@ -66,7 +67,6 @@ uint8_t UART_tx(unsigned char* tx_data_ptr, uint32_t length){
 			tx_length = length;
 			tx_cnt = 0; //reset txCnt to 0
 			tx_buffer = tx_data_ptr;
-			UART_tx_enable();
 			UDR0 = *tx_buffer; //load first byte
 			UCSR0B |= 1<<UDRIE0; 
 			//enable interrupt, ISR takes over from here
@@ -154,9 +154,8 @@ uint8_t UART_tx_rx_w_timeout(unsigned char* tx_data_ptr, unsigned char* rx_data_
 			}
 			if(timeout_cnt >= timeout){
 				//in this case return 0, reset states and set uart back to waiting
-				UCSR0B &= !(1<<UDRIE0); // disable transmit interrupt in case timeout < transmit time
+				UCSR0B &= ~(1<<UDRIE0); // disable transmit interrupt in case timeout < transmit time
 				UART_rx_disable();
-				UART_tx_disable();
 				state = waiting;
 				return 0;
 			}
@@ -191,7 +190,7 @@ ISR(USART_UDRE_vect){
 	}
 	else{
 		//disable UDRE interrupt
-		UCSR0B &= !(1<<UDRIE0);
+		UCSR0B &= ~(1<<UDRIE0);
 		//once last byte has left, TX_vect should trigger, updating the transmit state
 	}
 }
@@ -203,6 +202,5 @@ ISR(USART_TX_vect){
 		state = rx;
 	else
 		state = waiting;
-	UART_tx_disable();
 }
 

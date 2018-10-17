@@ -31,6 +31,7 @@ Includes
 #include <util/delay.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 extern "C"{
 #include "TWI_Master.h"
 #include "UART_transceiver.h"
@@ -80,6 +81,9 @@ uint8_t apply_soft_iron_correction(float*);
 /****************************************************************************
   Main code
 ****************************************************************************/
+
+static char info[50];
+
 int main(void)
 {
 	// Start I2C interface using provided library by microchip
@@ -92,15 +96,25 @@ int main(void)
 	// enable global interrupts such that the I2C and UART interfaces can operate
 	sei();
 	
-	char info[50];
+	
 	sprintf(info, "Please put the sensor down on a flat surface\r\n");
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
-	_delay_ms(5000);
+	_delay_ms(1000);
 	
 	// Initialise and calibrate MPU9250;
 	MPU_9250_initialise();
-	calibrate_accelerometer;
+	
+	sprintf(info, "Calibrating Accelerometer\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	
+	calibrate_accelerometer();
+	
+	sprintf(info, "Calibrating Gyro\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	
 	calibrate_gyroscope();
 	// put some code here so you know when to do the 8 pattern.
 	
@@ -110,6 +124,9 @@ int main(void)
 	_delay_ms(5000);
 	
 	get_magnetometer_scale();
+	sprintf(info, "Scalings read\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
 	calibrate_magnetometer();
 	
 	sprintf(info, "You can stop waving now \r\n");
@@ -133,16 +150,68 @@ int main(void)
 	Mahony mahony;
 	mahony.begin(100);//100 Hz is the most we can do due to magnetometer speed
 	
+	/*
     while (1) 
     {
-		/* obtain measurements and feed Mahony filter. */
+		// obtain measurements and feed Mahony filter.
 		read_gyroscope_data(gyroscope_data_raw);
+		
+		memset(info, 0, 50);
+		sprintf(info, "raw gx %d\r\n", gyroscope_data_raw[0]);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		sprintf(info, "raw gy %d\r\n", gyroscope_data_raw[1]);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		sprintf(info, "raw gz %d\r\n", gyroscope_data_raw[2]);
+		UART_tx((unsigned char*)info, strlen(info));
+
+		
 		read_accelerometer_data(accelerometer_data_raw);
+		
+		memset(info, 0, 50);
+		sprintf(info, "raw ax %d\r\n", accelerometer_data_raw[0]);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		sprintf(info, "raw ay %d\r\n", accelerometer_data_raw[1]);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		sprintf(info, "raw az %d\r\n", accelerometer_data_raw[2]);
+		UART_tx((unsigned char*)info, strlen(info));
+				
 		read_magnetometer(magnetometer_data_raw);
+		
+		memset(info, 0, 50);
+		sprintf(info, "raw mx %d\r\n", magnetometer_data_raw[0]);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		sprintf(info, "raw my %d\r\n", magnetometer_data_raw[1]);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		sprintf(info, "raw mz %d\r\n", magnetometer_data_raw[2]);
+		UART_tx((unsigned char*)info, strlen(info));
+				
 		// magnetometer has to be converted to float earlier.
 		magnetometer_data_gaus[0] = (float) magnetometer_data_raw[0];
 		magnetometer_data_gaus[1] = (float) magnetometer_data_raw[1];
 		magnetometer_data_gaus[2] = (float) magnetometer_data_raw[2];
+		
+		memset(info, 0, 50);
+		sprintf(info, "float mx %f\r\n", magnetometer_data_gaus[0]);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		sprintf(info, "float my %f\r\n", magnetometer_data_gaus[1]);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		sprintf(info, "float mz %f\r\n", magnetometer_data_gaus[2]);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		sprintf(info, "float test\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		dtostrf(PI, 5, 5, info);
+		UART_tx((unsigned char*)info, strlen(info));
+		
 		scale_magnetometer(magnetometer_data_gaus);
 		apply_hard_iron_correction(magnetometer_data_gaus);
 		apply_soft_iron_correction(magnetometer_data_gaus);
@@ -167,20 +236,21 @@ int main(void)
 		roll = mahony.getRoll();
 		yaw = mahony.getYaw();
 		pitch = mahony.getPitch();
-		/* update Bluetooth controller with axes info */
+		// update Bluetooth controller with axes info
 		// lets start by just printing to serial :)
 		
 		memset(info, 0, 50);
-		sprintf(info, "yaw %d\r\n", (int)yaw);
+		sprintf(info, "yaw %f\r\n", yaw);
 		UART_tx((unsigned char*)info, strlen(info));
 		memset(info, 0, 50);
-		sprintf(info, "roll %d\r\n", (int)roll);
+		sprintf(info, "roll %f\r\n", roll);
 		UART_tx((unsigned char*)info, strlen(info));
 		memset(info, 0, 50);
-		sprintf(info, "pitch %d\r\n", (int)pitch);
+		sprintf(info, "pitch %f\r\n", pitch);
 		UART_tx((unsigned char*)info, strlen(info));
-		_delay_ms(10);
+		_delay_ms(1000);
     }
+	*/
 }
 
 /****************************************************************************
@@ -231,18 +301,60 @@ uint8_t calibrate_accelerometer(){
 		_delay_ms(1);
 	}
 	
+	sprintf(info, "Sum ax: %d\r\n", (int)sum[0]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Sum ay: %d\r\n", (int)sum[1]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Sum az: %d\r\n", (int)sum[2]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	
+	//?????? Division is broken unless I first cast to int?
+	
+	/*
+	sum[0] = ((int)sum[0])/1024;
+	sum[1] = ((int)sum[1])/1024;
+	sum[2] = ((int)sum[2])/1024;
+	*/
+	
+	sum[0] = sum[0]/(int32_t)1024;
+	sum[1] = sum[1]/(int32_t)1024;
+	sum[2] = sum[2]/(int32_t)1024;
+	
+	sprintf(info, "Avg ax: %d\r\n", (int)sum[0]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Avg ay: %d\r\n", (int)sum[1]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Avg az: %d\r\n", (int)sum[2]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	
 	//take averages, sign inversion is done when setting the biases
 	//note that integer accuracy loss isn't bad because
 	//the values are stored as integers on the MPU anyway.
 	int16_t accel_bias[3];
-	accel_bias[0] = (int16_t)(sum[0]/1024); //x
-	accel_bias[1] = (int16_t)(sum[1]/1024); //y
-	accel_bias[2] = (int16_t)(sum[2]/1024); //z, from which you must subtract/add 2048 (1g) since z axis measures 1g
+	accel_bias[0] = (sum[0]); //x
+	accel_bias[1] = (sum[1]); //y
+	accel_bias[2] = (sum[2]); //z, from which you must subtract/add 2048 (1g) since z axis measures 1g
 	if(accel_bias[2] > 0)
 		accel_bias[2] -= 2048; //if z value is positive, subtract 1g;
 	else
 		accel_bias[2] += 2048; //otherwise, add 1g;
 	// note that the if else above does not expect more than 1g of offset (shouldn't be the case)
+	
+	sprintf(info, "Zeroing bias with: %d\r\n", accel_bias[0]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Zeroing bias with: %d\r\n", accel_bias[1]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Zeroing bias with: %d\r\n", accel_bias[2]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
 	
 	set_accel_bias(accel_bias);
 	
@@ -371,6 +483,16 @@ uint8_t calibrate_gyroscope(){
 		_delay_us(125);
 	}
 	
+	sprintf(info, "Sum gx: %d\r\n", sum[0]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Sum gy: %d\r\n", sum[1]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Sum gz: %d\r\n", sum[2]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	
 	//take averages, sign inversion is done when setting the biases
 	//note that integer accuracy loss isn't bad because
 	//the values are stored as integers on the MPU anyway.
@@ -378,6 +500,16 @@ uint8_t calibrate_gyroscope(){
 	gyro_bias[0] = (int16_t)(sum[0]/1024); //x
 	gyro_bias[1] = (int16_t)(sum[1]/1024); //y
 	gyro_bias[2] = (int16_t)(sum[2]/1024); //z
+	
+	sprintf(info, "Zeroing bias with: %d\r\n", gyro_bias[0]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Zeroing bias with: %d\r\n", gyro_bias[1]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Zeroing bias with: %d\r\n", gyro_bias[2]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
 	
 	set_gyro_bias(gyro_bias);
 	
@@ -444,13 +576,19 @@ uint8_t calibrate_magnetometer(){
 	TWI_Start_Transceiver_With_Data(write_cmd, 3);
 	//The device is now continuously measuring the data.
 	
+	sprintf(info, "init done\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	
 	// at 100 Hz, a new sample is available every 10 ms.
 	int16_t magneto_data[3];
 	int16_t max[3] = {-32768, -32768, -32768};
 	int16_t min[3] = {32767, 32767, 32767};
 	// first goal is to determine the max and min x, y, z values
-	for(uint8_t i = 0; i < 1024; ++i){
+	for(uint16_t i = 0; i < 1024; ++i){
+		
 		read_magnetometer(magneto_data);
+				
 		for(uint8_t j = 0; j < 3; ++j){
 			if(magneto_data[j] < min[j])
 				min[j] = magneto_data[j];
@@ -490,6 +628,10 @@ uint8_t calibrate_magnetometer(){
 	soft_iron_correction[1] = avg_rad/soft_iron_scaled[1];
 	soft_iron_correction[2] = avg_rad/soft_iron_scaled[2];
 	
+	sprintf(info, "soft iron done\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	
 	// There is no need to power down the magnetometer again, because hereafter
 	// the normal program flow will commence.
 	return 0;
@@ -518,9 +660,11 @@ uint8_t read_magnetometer(int16_t* magneto_data){
 	write_cmd[1] = 0x03; // HXL
 	uint8_t read_cmd[7];
 	read_cmd[0] = AK8963_addr << 1 | 1; // Read
+			
 	TWI_Start_Transceiver_With_Data(write_cmd, 2);
 	TWI_Start_Transceiver_With_Data(read_cmd, 7);
 	TWI_Get_Data_From_Transceiver(read_cmd, 7);
+	
 	magneto_data[0] = read_cmd[2] << 8 | read_cmd[1];
 	magneto_data[1] = read_cmd[4] << 8 | read_cmd[3];
 	magneto_data[2] = read_cmd[6] << 8 | read_cmd[5];
