@@ -32,6 +32,7 @@ Includes
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 extern "C"{
 #include "TWI_Master.h"
 #include "UART_transceiver.h"
@@ -105,11 +106,11 @@ int main(void)
 	// Initialise and calibrate MPU9250;
 	MPU_9250_initialise();
 	
-	sprintf(info, "Calibrating Accelerometer\r\n");
+	sprintf(info, "calibrating accelerometer\r\n");
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
 	
-	calibrate_accelerometer();
+	//calibrate_accelerometer();
 	
 	sprintf(info, "Calibrating Gyro\r\n");
 	UART_tx((unsigned char*)info, strlen(info));
@@ -150,7 +151,7 @@ int main(void)
 	Mahony mahony;
 	mahony.begin(100);//100 Hz is the most we can do due to magnetometer speed
 	
-	/*
+	
     while (1) 
     {
 		// obtain measurements and feed Mahony filter.
@@ -250,7 +251,7 @@ int main(void)
 		UART_tx((unsigned char*)info, strlen(info));
 		_delay_ms(1000);
     }
-	*/
+	
 }
 
 /****************************************************************************
@@ -287,9 +288,9 @@ uint8_t calibrate_accelerometer(){
 	
 	// take 1024 samples to average
 	
-	int32_t sum[3];
-	int16_t accelerometer_data[3];
-	for(uint16_t i = 0; i < 1024; ++i){
+	int32_t sum[3] = {0, 0, 0};
+	int16_t accelerometer_data[3] = {0, 0, 0};
+	for(uint16_t i = 0; i < 16; ++i){
 		read_accelerometer_data(accelerometer_data);
 		
 		//accumulate immediately to limit RAM usage
@@ -301,35 +302,30 @@ uint8_t calibrate_accelerometer(){
 		_delay_ms(1);
 	}
 	
-	sprintf(info, "Sum ax: %d\r\n", (int)sum[0]);
+	sprintf(info, "Sum ax: %ld\r\n", sum[0]);
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
-	sprintf(info, "Sum ay: %d\r\n", (int)sum[1]);
+	sprintf(info, "Sum ay: %ld\r\n", sum[1]);
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
-	sprintf(info, "Sum az: %d\r\n", (int)sum[2]);
+	sprintf(info, "Sum az: %ld\r\n", sum[2]);
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
 	
-	//?????? Division is broken unless I first cast to int?
+	// int32_t is a signed long int, so when formatting in formatting functions
+	// one needs to use %ld... Finally solved.
+	sum[0] = (sum[0])/16;
+	sum[1] = (sum[1])/16;
+	sum[2] = (sum[2])/16;
 	
-	/*
-	sum[0] = ((int)sum[0])/1024;
-	sum[1] = ((int)sum[1])/1024;
-	sum[2] = ((int)sum[2])/1024;
-	*/
 	
-	sum[0] = sum[0]/(int32_t)1024;
-	sum[1] = sum[1]/(int32_t)1024;
-	sum[2] = sum[2]/(int32_t)1024;
-	
-	sprintf(info, "Avg ax: %d\r\n", (int)sum[0]);
+	sprintf(info, "Avg ax: %ld\r\n", sum[0]);
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
-	sprintf(info, "Avg ay: %d\r\n", (int)sum[1]);
+	sprintf(info, "Avg ay: %ld\r\n", sum[1]);
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
-	sprintf(info, "Avg az: %d\r\n", (int)sum[2]);
+	sprintf(info, "Avg az: %ld\r\n", sum[2]);
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
 	
@@ -337,9 +333,9 @@ uint8_t calibrate_accelerometer(){
 	//note that integer accuracy loss isn't bad because
 	//the values are stored as integers on the MPU anyway.
 	int16_t accel_bias[3];
-	accel_bias[0] = (sum[0]); //x
-	accel_bias[1] = (sum[1]); //y
-	accel_bias[2] = (sum[2]); //z, from which you must subtract/add 2048 (1g) since z axis measures 1g
+	accel_bias[0] = sum[0]; //x
+	accel_bias[1] = sum[1]; //y
+	accel_bias[2] = sum[2]; //z, from which you must subtract/add 2048 (1g) since z axis measures 1g
 	if(accel_bias[2] > 0)
 		accel_bias[2] -= 2048; //if z value is positive, subtract 1g;
 	else
