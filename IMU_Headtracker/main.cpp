@@ -17,11 +17,12 @@ Macros
 ****************************************************************************/
 #define MPU_9250_Addr 0b1101000 // 7 bit I2C address with AD0 pin to ground
 #define AK8963_addr 0x0C // 7 bit magnetometer address
+
 #define ACCELEROMETER_RES 0.1220703125 // mg/LSB
-#define GYROSCOPE_RES 0.0304878049 // (°/s)/LSB
-#define MAGNETOMETER_RES 1.5 // G/LSB
+#define GYROSCOPE_RES 0.0304878049 // dps/lsb
+#define MAGNETOMETER_RES 0.15 // µT/LSB
 #define PI 3.14159265358979323846
-#define deg_to_rad(deg) ((float)deg * PI / 180.0)
+#define deg_to_rad(deg) (deg * PI / 180.0)
 
 /****************************************************************************
 Includes
@@ -84,6 +85,7 @@ uint8_t apply_soft_iron_correction(float*);
 ****************************************************************************/
 
 static char info[50];
+static char floats[20];
 
 int main(void)
 {
@@ -97,7 +99,6 @@ int main(void)
 	// enable global interrupts such that the I2C and UART interfaces can operate
 	sei();
 	
-	
 	sprintf(info, "Please put the sensor down on a flat surface\r\n");
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
@@ -110,7 +111,7 @@ int main(void)
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
 	
-	//calibrate_accelerometer();
+	calibrate_accelerometer();
 	
 	sprintf(info, "Calibrating Gyro\r\n");
 	UART_tx((unsigned char*)info, strlen(info));
@@ -125,9 +126,11 @@ int main(void)
 	_delay_ms(5000);
 	
 	get_magnetometer_scale();
-	sprintf(info, "Scalings read\r\n");
+	
+	sprintf(info, "Scalings read, calibrating magneto\r\n");
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
+	
 	calibrate_magnetometer();
 	
 	sprintf(info, "You can stop waving now \r\n");
@@ -167,7 +170,6 @@ int main(void)
 		sprintf(info, "raw gz %d\r\n", gyroscope_data_raw[2]);
 		UART_tx((unsigned char*)info, strlen(info));
 
-		
 		read_accelerometer_data(accelerometer_data_raw);
 		
 		memset(info, 0, 50);
@@ -198,19 +200,21 @@ int main(void)
 		magnetometer_data_gaus[2] = (float) magnetometer_data_raw[2];
 		
 		memset(info, 0, 50);
-		sprintf(info, "float mx %f\r\n", magnetometer_data_gaus[0]);
+		strcat(info, "Float mx: ");
+		strcat(info, dtostrf(magnetometer_data_gaus[0], 10, 5, floats));
+		strcat(info, "\r\n");
 		UART_tx((unsigned char*)info, strlen(info));
 		memset(info, 0, 50);
-		sprintf(info, "float my %f\r\n", magnetometer_data_gaus[1]);
+		memset(floats, 0, 20);
+		strcat(info, "Float my: ");
+		strcat(info, dtostrf(magnetometer_data_gaus[1], 10, 5, floats));
+		strcat(info, "\r\n");
 		UART_tx((unsigned char*)info, strlen(info));
 		memset(info, 0, 50);
-		sprintf(info, "float mz %f\r\n", magnetometer_data_gaus[2]);
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		sprintf(info, "float test\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		dtostrf(PI, 5, 5, info);
+		memset(floats, 0, 20);
+		strcat(info, "Float mz: ");
+		strcat(info, dtostrf(magnetometer_data_gaus[2], 10, 5, floats));
+		strcat(info, "\r\n");
 		UART_tx((unsigned char*)info, strlen(info));
 		
 		scale_magnetometer(magnetometer_data_gaus);
@@ -218,11 +222,81 @@ int main(void)
 		apply_soft_iron_correction(magnetometer_data_gaus);
 		
 		//conversion to appropriate datatypes happens here
-		for(uint8_t i; i < 3; ++i){
-			gyroscope_data_dps[i] = (float)(GYROSCOPE_RES * gyroscope_data_raw[i]);
-			accelerometer_data_g[i] = (float)(ACCELEROMETER_RES * accelerometer_data_raw[i]);
-			magnetometer_data_gaus[i] = (float)(MAGNETOMETER_RES * magnetometer_data_gaus[i]);
+		for(uint8_t i = 0; i < 3; ++i){
+			gyroscope_data_dps[i] = (GYROSCOPE_RES * (float)gyroscope_data_raw[i]);
+			accelerometer_data_g[i] = (ACCELEROMETER_RES * (float)accelerometer_data_raw[i]);
+			magnetometer_data_gaus[i] = (MAGNETOMETER_RES * magnetometer_data_gaus[i]);			
 		}
+		
+		memset(info, 0, 50);
+		strcat(info, "dps gx: ");
+		strcat(info, dtostrf(gyroscope_data_dps[0], 10, 5, floats));
+		strcat(info, "\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		memset(floats, 0, 20);
+		strcat(info, "dps gy: ");
+		strcat(info, dtostrf(gyroscope_data_dps[1], 10, 5, floats));
+		strcat(info, "\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		memset(floats, 0, 20);
+		strcat(info, "dps gz: ");
+		strcat(info, dtostrf(gyroscope_data_dps[2], 10, 5, floats));
+		strcat(info, "\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		strcat(info, "mg ax: ");
+		strcat(info, dtostrf(accelerometer_data_g[0], 10, 5, floats));
+		strcat(info, "\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		memset(floats, 0, 20);
+		strcat(info, "mg ay: ");
+		strcat(info, dtostrf(accelerometer_data_g[1], 10, 5, floats));
+		strcat(info, "\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		memset(floats, 0, 20);
+		strcat(info, "mg az: ");
+		strcat(info, dtostrf(accelerometer_data_g[2], 10, 5, floats));
+		strcat(info, "\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		strcat(info, "Gauss mx: ");
+		strcat(info, dtostrf(magnetometer_data_gaus[0], 10, 5, floats));
+		strcat(info, "\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		memset(floats, 0, 20);
+		strcat(info, "Gauss my: ");
+		strcat(info, dtostrf(magnetometer_data_gaus[1], 10, 5, floats));
+		strcat(info, "\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		memset(floats, 0, 20);
+		strcat(info, "Gauss mz: ");
+		strcat(info, dtostrf(magnetometer_data_gaus[2], 10, 5, floats));
+		strcat(info, "\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
+		
+		memset(info, 0, 50);
+		strcat(info, "rps gx: ");
+		strcat(info, dtostrf(deg_to_rad(gyroscope_data_dps[0]), 10, 5, floats));
+		strcat(info, "\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		memset(floats, 0, 20);
+		strcat(info, "rps gy: ");
+		strcat(info, dtostrf(deg_to_rad(gyroscope_data_dps[1]), 10, 5, floats));
+		strcat(info, "\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		memset(floats, 0, 20);
+		strcat(info, "rps gz: ");
+		strcat(info, dtostrf(deg_to_rad(gyroscope_data_dps[2]), 10, 5, floats));
+		strcat(info, "\r\n");
+		UART_tx((unsigned char*)info, strlen(info));
 		
 		mahony.update(	deg_to_rad(gyroscope_data_dps[0]),
 						deg_to_rad(gyroscope_data_dps[1]),
@@ -241,14 +315,23 @@ int main(void)
 		// lets start by just printing to serial :)
 		
 		memset(info, 0, 50);
-		sprintf(info, "yaw %f\r\n", yaw);
+		strcat(info, "Float roll: ");
+		strcat(info, dtostrf(roll, 5, 5, floats));
+		strcat(info, "\r\n");
 		UART_tx((unsigned char*)info, strlen(info));
 		memset(info, 0, 50);
-		sprintf(info, "roll %f\r\n", roll);
+		memset(floats, 0, 20);
+		strcat(info, "Float yaw: ");
+		strcat(info, dtostrf(yaw, 5, 5, floats));
+		strcat(info, "\r\n");
 		UART_tx((unsigned char*)info, strlen(info));
 		memset(info, 0, 50);
-		sprintf(info, "pitch %f\r\n", pitch);
+		memset(floats, 0, 20);
+		strcat(info, "Float pitch: ");
+		strcat(info, dtostrf(pitch, 5, 5, floats));
+		strcat(info, "\r\n");
 		UART_tx((unsigned char*)info, strlen(info));
+		
 		_delay_ms(1000);
     }
 	
@@ -479,13 +562,13 @@ uint8_t calibrate_gyroscope(){
 		_delay_us(125);
 	}
 	
-	sprintf(info, "Sum gx: %d\r\n", sum[0]);
+	sprintf(info, "Sum gx: %ld\r\n", sum[0]);
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
-	sprintf(info, "Sum gy: %d\r\n", sum[1]);
+	sprintf(info, "Sum gy: %ld\r\n", sum[1]);
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
-	sprintf(info, "Sum gz: %d\r\n", sum[2]);
+	sprintf(info, "Sum gz: %ld\r\n", sum[2]);
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
 	
@@ -572,10 +655,6 @@ uint8_t calibrate_magnetometer(){
 	TWI_Start_Transceiver_With_Data(write_cmd, 3);
 	//The device is now continuously measuring the data.
 	
-	sprintf(info, "init done\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	
 	// at 100 Hz, a new sample is available every 10 ms.
 	int16_t magneto_data[3];
 	int16_t max[3] = {-32768, -32768, -32768};
@@ -593,6 +672,16 @@ uint8_t calibrate_magnetometer(){
 		}
 		_delay_ms(10);
 	}
+	
+	for(uint8_t i = 0; i < 3; ++i){
+		sprintf(info, "Max m: %d\r\n", max[i]);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		sprintf(info, "Min m: %d\r\n", min[i]);
+		UART_tx((unsigned char*)info, strlen(info));
+		memset(info, 0, 50);
+		
+	}
 		
 	// now calculate raw hard iron corrections:
 	int16_t hard_iron_raw[3]; // int16 suffices normally
@@ -600,11 +689,60 @@ uint8_t calibrate_magnetometer(){
 	hard_iron_raw[1] = (max[1] + min[1])/2;
 	hard_iron_raw[2] = (max[2] + min[2])/2;
 	
+	sprintf(info, "Hard iron x raw: %d\r\n", hard_iron_raw[0]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Hard iron y raw: %d\r\n", hard_iron_raw[1]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Hard iron z raw: %d\r\n", hard_iron_raw[2]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	
 	//scale these using asa adjustment values, convert to float first
 	hard_iron_correction[0] = (float)hard_iron_raw[0];
 	hard_iron_correction[1] = (float)hard_iron_raw[1];
 	hard_iron_correction[2] = (float)hard_iron_raw[2];
+	
+	strcat(info, "Float hard iron x: ");
+	strcat(info, dtostrf(hard_iron_correction[0], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	strcat(info, "Float hard iron y: ");
+	strcat(info, dtostrf(hard_iron_correction[1], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	strcat(info, "Float hard iron z: ");
+	strcat(info, dtostrf(hard_iron_correction[2], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	
 	scale_magnetometer(hard_iron_correction);
+	
+	strcat(info, "Scl Float hard iron x: ");
+	strcat(info, dtostrf(hard_iron_correction[0], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	strcat(info, "Scl Float hard iron y: ");
+	strcat(info, dtostrf(hard_iron_correction[1], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	strcat(info, "Scl Float hard iron z: ");
+	strcat(info, dtostrf(hard_iron_correction[2], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
 	// hard iron correction is now done.
 	
 	// calculate soft iron correction (at once in float since I must scale them afterwards)
@@ -613,16 +751,80 @@ uint8_t calibrate_magnetometer(){
 	soft_iron_raw[1] = (float)((max[1] - min[1])/2);
 	soft_iron_raw[2] = (float)((max[2] - min[2])/2);
 	
+	strcat(info, "Float soft iron x: ");
+	strcat(info, dtostrf(soft_iron_raw[0], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	strcat(info, "Float soft iron y: ");
+	strcat(info, dtostrf(soft_iron_raw[1], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	strcat(info, "Float soft iron z: ");
+	strcat(info, dtostrf(soft_iron_raw[2], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	
 	// scale soft iron
 	float* soft_iron_scaled = soft_iron_raw;
 	scale_magnetometer(soft_iron_scaled);
 	
+	strcat(info, "Scl Float soft iron x: ");
+	strcat(info, dtostrf(soft_iron_scaled[0], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	strcat(info, "Scl Float soft iron y: ");
+	strcat(info, dtostrf(soft_iron_scaled[1], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	strcat(info, "Scl Float soft iron z: ");
+	strcat(info, dtostrf(soft_iron_scaled[2], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	
 	float avg_rad = soft_iron_scaled[0] + soft_iron_scaled[1] + soft_iron_scaled[2];
 	avg_rad /= 3.0;
+	
+	strcat(info, "avg rad");
+	strcat(info, dtostrf(avg_rad, 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
 	
 	soft_iron_correction[0] = avg_rad/soft_iron_scaled[0];
 	soft_iron_correction[1] = avg_rad/soft_iron_scaled[1];
 	soft_iron_correction[2] = avg_rad/soft_iron_scaled[2];
+	
+	strcat(info, "Scl Float soft iron x: ");
+	strcat(info, dtostrf(soft_iron_correction[0], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	strcat(info, "Scl Float soft iron y: ");
+	strcat(info, dtostrf(soft_iron_correction[1], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
+	strcat(info, "Scl Float soft iron z: ");
+	strcat(info, dtostrf(soft_iron_correction[2], 5, 5, floats));
+	strcat(info, "\r\n");
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	memset(floats, 0, 20);
 	
 	sprintf(info, "soft iron done\r\n");
 	UART_tx((unsigned char*)info, strlen(info));
@@ -654,12 +856,12 @@ uint8_t read_magnetometer(int16_t* magneto_data){
 	uint8_t write_cmd[2];
 	write_cmd[0] = AK8963_addr << 1; //Write
 	write_cmd[1] = 0x03; // HXL
-	uint8_t read_cmd[7];
+	uint8_t read_cmd[8];
 	read_cmd[0] = AK8963_addr << 1 | 1; // Read
 			
 	TWI_Start_Transceiver_With_Data(write_cmd, 2);
-	TWI_Start_Transceiver_With_Data(read_cmd, 7);
-	TWI_Get_Data_From_Transceiver(read_cmd, 7);
+	TWI_Start_Transceiver_With_Data(read_cmd, 8);
+	TWI_Get_Data_From_Transceiver(read_cmd, 8);
 	
 	magneto_data[0] = read_cmd[2] << 8 | read_cmd[1];
 	magneto_data[1] = read_cmd[4] << 8 | read_cmd[3];
@@ -694,6 +896,16 @@ uint8_t get_magnetometer_scale(){
 	magneto_sens_adjust[0] = read_cmd[1];
 	magneto_sens_adjust[1] = read_cmd[2];
 	magneto_sens_adjust[2] = read_cmd[3];
+	
+	sprintf(info, "X scale factor: %d\r\n", magneto_sens_adjust[0]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Y scale factor: %d\r\n", magneto_sens_adjust[1]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
+	sprintf(info, "Z scale factor: %d\r\n", magneto_sens_adjust[2]);
+	UART_tx((unsigned char*)info, strlen(info));
+	memset(info, 0, 50);
 	
 	//Finally put the magnetometer back in power down mode
 	memset(write_cmd, 3, 0);
