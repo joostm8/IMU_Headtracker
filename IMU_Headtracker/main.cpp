@@ -79,6 +79,7 @@ uint8_t read_accelerometer_data(int16_t*);
 uint8_t read_gyroscope_data(int16_t*);
 uint8_t apply_hard_iron_correction(float*);
 uint8_t apply_soft_iron_correction(float*);
+uint8_t self_test_dislodge();
 
 /****************************************************************************
   Main code
@@ -106,6 +107,7 @@ int main(void)
 	
 	// Initialise and calibrate MPU9250;
 	MPU_9250_initialise();
+	self_test_dislodge();
 	
 	sprintf(info, "calibrating accelerometer\r\n");
 	UART_tx((unsigned char*)info, strlen(info));
@@ -332,7 +334,7 @@ int main(void)
 		strcat(info, "\r\n");
 		UART_tx((unsigned char*)info, strlen(info));
 		
-		_delay_ms(1000);
+		_delay_ms(100);
     }
 	
 }
@@ -369,11 +371,13 @@ uint8_t calibrate_accelerometer(){
 	write_cmd[2] = 0b00011000; // set ACCEL_FS_SEL to 11 or +/- 16g;
 	TWI_Start_Transceiver_With_Data(write_cmd, 3);
 	
+	_delay_ms(100);
+	
 	// take 1024 samples to average
 	
 	int32_t sum[3] = {0, 0, 0};
 	int16_t accelerometer_data[3] = {0, 0, 0};
-	for(uint16_t i = 0; i < 16; ++i){
+	for(uint16_t i = 0; i < 1024; ++i){
 		read_accelerometer_data(accelerometer_data);
 		
 		//accumulate immediately to limit RAM usage
@@ -382,7 +386,7 @@ uint8_t calibrate_accelerometer(){
 		sum[2] += accelerometer_data[2];
 		
 		//update rate is 1kHz with default settings
-		_delay_ms(1);
+		_delay_ms(2);
 	}
 	
 	sprintf(info, "Sum ax: %ld\r\n", sum[0]);
@@ -397,9 +401,9 @@ uint8_t calibrate_accelerometer(){
 	
 	// int32_t is a signed long int, so when formatting in formatting functions
 	// one needs to use %ld... Finally solved.
-	sum[0] = (sum[0])/16;
-	sum[1] = (sum[1])/16;
-	sum[2] = (sum[2])/16;
+	sum[0] = (sum[0])/1024;
+	sum[1] = (sum[1])/1024;
+	sum[2] = (sum[2])/1024;
 	
 	
 	sprintf(info, "Avg ax: %ld\r\n", sum[0]);
@@ -462,12 +466,13 @@ uint8_t read_accelerometer_data(int16_t* accel_data){
 Sets accelerometer in 4g range
 ****************************************************************************/
 uint8_t set_accelerometer_4g(){
-	// Set accelerometer range to +/-16g since offset is stored in that format
+	
 	uint8_t write_cmd[3];
 	write_cmd[0] = MPU_9250_Addr << 1; // write
 	write_cmd[1] = 28; // Accelerometer configuration register
 	write_cmd[2] = 0b00001000; // set ACCEL_FS_SEL to 01 or +/- 4g;
 	TWI_Start_Transceiver_With_Data(write_cmd, 3);
+	_delay_ms(100);
 	return 0;
 }
 
@@ -931,5 +936,49 @@ uint8_t apply_soft_iron_correction(float* magneto_data){
 	magneto_data[0] = magneto_data[0] * soft_iron_correction[0];
 	magneto_data[1] = magneto_data[1] * soft_iron_correction[1];
 	magneto_data[2] = magneto_data[2] * soft_iron_correction[2];
+	return 0;
+}
+
+/****************************************************************************
+I seem to have some problems with axes being stuck on boot. Self test induces
+forces on the sensors electrically, so I figured it was worth a shot to
+enable self test for a couple of seconds, then disable it in order to dislodge
+the sensors. Note, this is no self test implementation, I tried the AN
+but couldn't quite figure out how exactly the self test was supposed to work.
+
+#the function assumes both acceleromter and gyroscope are on.
+****************************************************************************/
+uint8_t self_test_dislodge(){
+	
+	uint8_t write_cmd[3];
+	write_cmd[0] = MPU_9250_Addr << 1; //Write
+	write_cmd[1] = 27; // Gyro Config
+	write_cmd[2] = 0b11100000; // enables just the self test, all other bits default 0
+	TWI_Start_Transceiver_With_Data(write_cmd, 3);
+	//The Gyro is now in self test mode.
+	
+	memset(write_cmd, 3, 0);
+	write_cmd[0] = MPU_9250_Addr << 1; //Write
+	write_cmd[1] = 28; // Accelerometer config
+	write_cmd[2] = 0b11100000; // enables just the self test, all other bits default 0
+	TWI_Start_Transceiver_With_Data(write_cmd, 3);
+	//The accelerometer is now in self test mode.
+	
+	_delay_ms(100); //give the sensor some time to dislodge.
+	
+	memset(write_cmd, 3, 0);
+	write_cmd[0] = MPU_9250_Addr << 1; //Write
+	write_cmd[1] = 27; // Accelerometer config
+	write_cmd[2] = 0x00; // reset
+	TWI_Start_Transceiver_With_Data(write_cmd, 3);
+	
+	memset(write_cmd, 3, 0);
+	write_cmd[0] = MPU_9250_Addr << 1; //Write
+	write_cmd[1] = 28; // Accelerometer config
+	write_cmd[2] = 0x00; // reset
+	TWI_Start_Transceiver_With_Data(write_cmd, 3);
+	
+	_delay_ms(20); // after disabling self test one should wait 20 ms according to manual.
+	
 	return 0;
 }
