@@ -220,7 +220,7 @@ int main(void)
 								magnetometer_data_float[0],
 								-magnetometer_data_float[2]);
 					
-			MadgwickAHRSupdateRollPitchYaw();
+			MadgwickAHRSupdateRollPitchYaw(); // move this within the BT transmit code perhaps since it's only needed there?.
 			// update Bluetooth controller with axes info
 			// lets start by just printing to serial :)
 
