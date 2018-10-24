@@ -231,9 +231,18 @@ float invSqrt(float x) {
 //----------------------------------------------------------------------------------------------------
 // Updates Roll, Pitch and Yaw using quaternions
 void MadgwickAHRSupdateRollPitchYaw(){
-	roll = atan2(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2) * 57.29578f;
-	pitch = asin(-2.0f * (q1*q3 - q0*q2)) * 57.29578f;
-	yaw = atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3) * 57.29578f + 180.0f;
+
+//	roll = atan2(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2) * 57.29578f;
+//	pitch = asin(-2.0f * (q1*q3 - q0*q2)) * 57.29578f;
+//	yaw = atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3) * 57.29578f;
+
+// To get yaw, roll and pitch in degrees, comment the code below and uncomment the code above.
+
+// The BT chip expects values between -127 and 127, so scale with 127/pi
+
+	roll = atan2(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2) * 40.42536f;
+	pitch = asin(-2.0f * (q1*q3 - q0*q2)) * 40.42536f;
+	yaw = atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3) * 40.42536f;
 }
 
 //====================================================================================================
