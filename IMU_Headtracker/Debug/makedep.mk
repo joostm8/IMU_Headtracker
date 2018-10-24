@@ -2,9 +2,9 @@
 # Automatically-generated file. Do not edit or delete the file
 ################################################################################
 
-MahonyAHRS\MahonyAHRS.cpp
+MahonyAHRS\MahonyAHRS.c
 
-main.cpp
+main.c
 
 TWI_library\TWI_Master.c
 

@@ -27,7 +27,7 @@ Macros
 Variables
 ****************************************************************************/
 static uint32_t tx_length = 0;
-static uint8_t* tx_buffer = 0;
+static uint8_t tx_buffer[100]; // buffer for transmissions
 static uint8_t* rx_buffer = 0;
 typedef enum uart_state {
 	waiting,
@@ -61,15 +61,19 @@ The function is blocking, but power optimized.
 	length		number of bytes to transmit
 ****************************************************************************/
 uint8_t UART_tx(unsigned char* tx_data_ptr, uint32_t length){
+	while(state != waiting){
+		//loop while waiting for new command
+	}
 	if(state == waiting){
 		if(length > 0){
 			state = tx;
+			memcpy(tx_buffer, tx_data_ptr, length);
 			tx_length = length;
 			tx_cnt = 0; //reset txCnt to 0
-			tx_buffer = tx_data_ptr;
 			UDR0 = *tx_buffer; //load first byte
 			UCSR0B |= 1<<UDRIE0; 
 			//enable interrupt, ISR takes over from here
+			/*
 			while(state == tx){
 				cli();
 				sleep_enable();
@@ -77,6 +81,8 @@ uint8_t UART_tx(unsigned char* tx_data_ptr, uint32_t length){
 				sleep_cpu();
 				sleep_disable();
 			}
+			*/
+			// above commented out to make at least 1 write non blocking
 			return 1;
 		}
 		return 0;
@@ -101,7 +107,6 @@ uint8_t UART_tx_rx(unsigned char* tx_data_ptr, unsigned char* rx_data_ptr, uint3
 			tx_length = length;
 			tx_cnt = 0; // reset tx_cnt to 0
 			rx_cnt = 0; // reset rx_cnt to 0
-			tx_buffer = tx_data_ptr;
 			rx_buffer = rx_data_ptr;
 			UART_enable();
 			UDR0 = *tx_buffer; //load first byte
@@ -142,7 +147,6 @@ uint8_t UART_tx_rx_w_timeout(unsigned char* tx_data_ptr, unsigned char* rx_data_
 			tx_length = length;
 			tx_cnt = 0; // reset tx_cnt to 0
 			rx_cnt = 0; // reset rx_cnt to 0
-			tx_buffer = tx_data_ptr;
 			rx_buffer = rx_data_ptr;
 			UART_enable();
 			UDR0 = *tx_buffer; //load first byte

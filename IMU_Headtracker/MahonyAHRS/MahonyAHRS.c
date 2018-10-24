@@ -20,7 +20,7 @@
 //---------------------------------------------------------------------------------------------------
 // Definitions
 
-#define sampleFreq	512.0f			// sample frequency in Hz
+//#define sampleFreq	512.0f			// sample frequency in Hz
 #define twoKpDef	(2.0f * 0.5f)	// 2 * proportional gain
 #define twoKiDef	(2.0f * 0.0f)	// 2 * integral gain
 
@@ -31,6 +31,8 @@ volatile float twoKp = twoKpDef;											// 2 * proportional gain (Kp)
 volatile float twoKi = twoKiDef;											// 2 * integral gain (Ki)
 volatile float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;					// quaternion of sensor frame relative to auxiliary frame
 volatile float integralFBx = 0.0f,  integralFBy = 0.0f, integralFBz = 0.0f;	// integral error terms scaled by Ki
+volatile float roll = 0.0f, pitch = 0.0f, yaw = 0.0f;						// roll pitch yaw, computed from quaternions
+volatile float dt = 0.0f;													// delta t, used instead of a constant sample frequency
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations
@@ -105,9 +107,12 @@ void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az
 
 		// Compute and apply integral feedback if enabled
 		if(twoKi > 0.0f) {
-			integralFBx += twoKi * halfex * (1.0f / sampleFreq);	// integral error scaled by Ki
-			integralFBy += twoKi * halfey * (1.0f / sampleFreq);
-			integralFBz += twoKi * halfez * (1.0f / sampleFreq);
+//			integralFBx += twoKi * halfex * (1.0f / sampleFreq);	// integral error scaled by Ki
+//			integralFBy += twoKi * halfey * (1.0f / sampleFreq);
+//			integralFBz += twoKi * halfez * (1.0f / sampleFreq);
+			integralFBx += twoKi * halfex * dt;	// integral error scaled by Ki
+			integralFBy += twoKi * halfey * dt;
+			integralFBz += twoKi * halfez * dt;
 			gx += integralFBx;	// apply integral feedback
 			gy += integralFBy;
 			gz += integralFBz;
@@ -125,9 +130,12 @@ void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az
 	}
 	
 	// Integrate rate of change of quaternion
-	gx *= (0.5f * (1.0f / sampleFreq));		// pre-multiply common factors
-	gy *= (0.5f * (1.0f / sampleFreq));
-	gz *= (0.5f * (1.0f / sampleFreq));
+//	gx *= (0.5f * (1.0f / sampleFreq));		// pre-multiply common factors
+//	gy *= (0.5f * (1.0f / sampleFreq));
+//	gz *= (0.5f * (1.0f / sampleFreq));
+	gx *= (0.5f * dt);		// pre-multiply common factors
+	gy *= (0.5f * dt);
+	gz *= (0.5f * dt);
 	qa = q0;
 	qb = q1;
 	qc = q2;
@@ -174,9 +182,12 @@ void MahonyAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float
 
 		// Compute and apply integral feedback if enabled
 		if(twoKi > 0.0f) {
-			integralFBx += twoKi * halfex * (1.0f / sampleFreq);	// integral error scaled by Ki
-			integralFBy += twoKi * halfey * (1.0f / sampleFreq);
-			integralFBz += twoKi * halfez * (1.0f / sampleFreq);
+//			integralFBx += twoKi * halfex * (1.0f / sampleFreq);	// integral error scaled by Ki
+//			integralFBy += twoKi * halfey * (1.0f / sampleFreq);
+//			integralFBz += twoKi * halfez * (1.0f / sampleFreq);
+			integralFBx += twoKi * halfex * dt;	// integral error scaled by Ki
+			integralFBy += twoKi * halfey * dt;
+			integralFBz += twoKi * halfez * dt;
 			gx += integralFBx;	// apply integral feedback
 			gy += integralFBy;
 			gz += integralFBz;
@@ -194,9 +205,12 @@ void MahonyAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float
 	}
 	
 	// Integrate rate of change of quaternion
-	gx *= (0.5f * (1.0f / sampleFreq));		// pre-multiply common factors
-	gy *= (0.5f * (1.0f / sampleFreq));
-	gz *= (0.5f * (1.0f / sampleFreq));
+//	gx *= (0.5f * (1.0f / sampleFreq));		// pre-multiply common factors
+//	gy *= (0.5f * (1.0f / sampleFreq));
+//	gz *= (0.5f * (1.0f / sampleFreq));
+	gx *= (0.5f * dt);		// pre-multiply common factors
+	gy *= (0.5f * dt);
+	gz *= (0.5f * dt);
 	qa = q0;
 	qb = q1;
 	qc = q2;
@@ -225,6 +239,14 @@ float invSqrt(float x) {
 	y = *(float*)&i;
 	y = y * (1.5f - (halfx * y * y));
 	return y;
+}
+
+//----------------------------------------------------------------------------------------------------
+// Updates Roll, Pitch and Yaw using quaternions
+void MahonyAHRSupdateRollPitchYaw(){
+	roll = atan2(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2) * 57.29578f;
+	pitch = asin(-2.0f * (q1*q3 - q0*q2)) * 57.29578f;
+	yaw = atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3) * 57.29578f + 180.0f;
 }
 
 //====================================================================================================
