@@ -23,12 +23,18 @@ Macros
 #define MAGNETOMETER_RES 0.15 // µT/LSB
 #define PI 3.14159265358979323846
 #define deg_to_rad(deg) (deg * PI / 180.0)
+#define GYROSCOPE_RES_RPS 0.0005321125 // rps/lsb
+
+#ifdef SERIAL_INFO
+#undef SERIAL_INFO
+#endif
 
 /****************************************************************************
 Includes
 ****************************************************************************/
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 #include <util/delay.h>
 #include <string.h>
 #include <stdio.h>
@@ -55,10 +61,15 @@ static enum bluetoothState{
 	} btState = startup;
 
 static float hard_iron_correction[3] = {0, 0, 0}; //x, y, z hard iron corrections, subtract from scaled measurements
+	
 static float soft_iron_correction[3] = {0, 0, 0}; //x, y, z soft iron corrections, multiply with scaled and hard corrected measurements
 // also see https://github.com/kriswiner/MPU6050/wiki/Simple-and-Effective-Magnetometer-Calibration
 static int8_t magneto_sens_adjust[3] = {0, 0, 0}; // x, y, z sens adjust values
 // perhaps store sens adjust in eeprom since it doesn't change?
+static int16_t accelerometer_offset[3] = {0, 0, 0}; // accelerometer offsets to handle offsetting in SW.
+
+static volatile uint8_t enable_program = 0;
+static uint8_t loop_cnt = 0;
 
 /****************************************************************************
   Function declarations
@@ -80,6 +91,8 @@ uint8_t read_gyroscope_data(int16_t*);
 uint8_t apply_hard_iron_correction(float*);
 uint8_t apply_soft_iron_correction(float*);
 uint8_t self_test_dislodge();
+void GPIO_setup_for_timing();
+void TIMER_setup();
 
 /****************************************************************************
   Main code
@@ -90,6 +103,7 @@ static char floats[20];
 
 int main(void)
 {
+	
 	// Start I2C interface using provided library by microchip
 	// in TWI_Master.h, TWI_TWBR is set as 0x02, which yields 400kHz on 8MHz µC
 	TWI_Master_Initialise();
@@ -113,7 +127,7 @@ int main(void)
 	UART_tx((unsigned char*)info, strlen(info));
 	memset(info, 0, 50);
 	
-	calibrate_accelerometer();
+	//calibrate_accelerometer();
 	
 	sprintf(info, "Calibrating Gyro\r\n");
 	UART_tx((unsigned char*)info, strlen(info));
@@ -154,187 +168,227 @@ int main(void)
 	float yaw = 0;
 	float pitch = 0;
 	Mahony mahony;
-	mahony.begin(100);//100 Hz is the most we can do due to magnetometer speed
+	mahony.begin(150);
 	
+	TIMER_setup();
+	GPIO_setup_for_timing();
 	
     while (1) 
     {
-		// obtain measurements and feed Mahony filter.
-		read_gyroscope_data(gyroscope_data_raw);
-		
-		memset(info, 0, 50);
-		sprintf(info, "raw gx %d\r\n", gyroscope_data_raw[0]);
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		sprintf(info, "raw gy %d\r\n", gyroscope_data_raw[1]);
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		sprintf(info, "raw gz %d\r\n", gyroscope_data_raw[2]);
-		UART_tx((unsigned char*)info, strlen(info));
+		if(enable_program){
+			PORTB |= 1<<PORTB1;
+			enable_program = 0;
+			++loop_cnt;
+			loop_cnt %= 8; // either 0 or 1
+			// obtain measurements and feed Mahony filter.
+			if(loop_cnt == 0){
+			read_gyroscope_data(gyroscope_data_raw);
+					
+#ifdef SERIAL_INFO
+			memset(info, 0, 50);
+			sprintf(info, "raw gx %d\r\n", gyroscope_data_raw[0]);
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			sprintf(info, "raw gy %d\r\n", gyroscope_data_raw[1]);
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			sprintf(info, "raw gz %d\r\n", gyroscope_data_raw[2]);
+			UART_tx((unsigned char*)info, strlen(info));
+#endif
 
-		read_accelerometer_data(accelerometer_data_raw);
-		
-		memset(info, 0, 50);
-		sprintf(info, "raw ax %d\r\n", accelerometer_data_raw[0]);
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		sprintf(info, "raw ay %d\r\n", accelerometer_data_raw[1]);
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		sprintf(info, "raw az %d\r\n", accelerometer_data_raw[2]);
-		UART_tx((unsigned char*)info, strlen(info));
+			read_accelerometer_data(accelerometer_data_raw);
+
+#ifdef SERIAL_INFO
+			memset(info, 0, 50);
+			sprintf(info, "raw ax %d\r\n", accelerometer_data_raw[0]);
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			sprintf(info, "raw ay %d\r\n", accelerometer_data_raw[1]);
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			sprintf(info, "raw az %d\r\n", accelerometer_data_raw[2]);
+			UART_tx((unsigned char*)info, strlen(info));
+#endif
+				read_magnetometer(magnetometer_data_raw);
 				
-		read_magnetometer(magnetometer_data_raw);
-		
-		memset(info, 0, 50);
-		sprintf(info, "raw mx %d\r\n", magnetometer_data_raw[0]);
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		sprintf(info, "raw my %d\r\n", magnetometer_data_raw[1]);
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		sprintf(info, "raw mz %d\r\n", magnetometer_data_raw[2]);
-		UART_tx((unsigned char*)info, strlen(info));
+			
+
+#ifdef SERIAL_INFO
+			memset(info, 0, 50);
+			sprintf(info, "raw mx %d\r\n", magnetometer_data_raw[0]);
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			sprintf(info, "raw my %d\r\n", magnetometer_data_raw[1]);
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			sprintf(info, "raw mz %d\r\n", magnetometer_data_raw[2]);
+			UART_tx((unsigned char*)info, strlen(info));
+#endif
+					
+			// magnetometer has to be converted to float earlier.
+			magnetometer_data_gaus[0] = (float) magnetometer_data_raw[0];
+			magnetometer_data_gaus[1] = (float) magnetometer_data_raw[1];
+			magnetometer_data_gaus[2] = (float) magnetometer_data_raw[2];
+			
+
+#ifdef SERIAL_INFO
+			memset(info, 0, 50);
+			strcat(info, "Float mx: ");
+			strcat(info, dtostrf(magnetometer_data_gaus[0], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			memset(floats, 0, 20);
+			strcat(info, "Float my: ");
+			strcat(info, dtostrf(magnetometer_data_gaus[1], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			memset(floats, 0, 20);
+			strcat(info, "Float mz: ");
+			strcat(info, dtostrf(magnetometer_data_gaus[2], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+#endif
 				
-		// magnetometer has to be converted to float earlier.
-		magnetometer_data_gaus[0] = (float) magnetometer_data_raw[0];
-		magnetometer_data_gaus[1] = (float) magnetometer_data_raw[1];
-		magnetometer_data_gaus[2] = (float) magnetometer_data_raw[2];
-		
-		memset(info, 0, 50);
-		strcat(info, "Float mx: ");
-		strcat(info, dtostrf(magnetometer_data_gaus[0], 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		memset(floats, 0, 20);
-		strcat(info, "Float my: ");
-		strcat(info, dtostrf(magnetometer_data_gaus[1], 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		memset(floats, 0, 20);
-		strcat(info, "Float mz: ");
-		strcat(info, dtostrf(magnetometer_data_gaus[2], 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		
-		scale_magnetometer(magnetometer_data_gaus);
-		apply_hard_iron_correction(magnetometer_data_gaus);
-		apply_soft_iron_correction(magnetometer_data_gaus);
-		
-		//conversion to appropriate datatypes happens here
-		for(uint8_t i = 0; i < 3; ++i){
-			gyroscope_data_dps[i] = (GYROSCOPE_RES * (float)gyroscope_data_raw[i]);
-			accelerometer_data_g[i] = (ACCELEROMETER_RES * (float)accelerometer_data_raw[i]);
-			magnetometer_data_gaus[i] = (MAGNETOMETER_RES * magnetometer_data_gaus[i]);			
-		}
-		
-		memset(info, 0, 50);
-		strcat(info, "dps gx: ");
-		strcat(info, dtostrf(gyroscope_data_dps[0], 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		memset(floats, 0, 20);
-		strcat(info, "dps gy: ");
-		strcat(info, dtostrf(gyroscope_data_dps[1], 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		memset(floats, 0, 20);
-		strcat(info, "dps gz: ");
-		strcat(info, dtostrf(gyroscope_data_dps[2], 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		strcat(info, "mg ax: ");
-		strcat(info, dtostrf(accelerometer_data_g[0], 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		memset(floats, 0, 20);
-		strcat(info, "mg ay: ");
-		strcat(info, dtostrf(accelerometer_data_g[1], 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		memset(floats, 0, 20);
-		strcat(info, "mg az: ");
-		strcat(info, dtostrf(accelerometer_data_g[2], 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		strcat(info, "Gauss mx: ");
-		strcat(info, dtostrf(magnetometer_data_gaus[0], 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		memset(floats, 0, 20);
-		strcat(info, "Gauss my: ");
-		strcat(info, dtostrf(magnetometer_data_gaus[1], 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		memset(floats, 0, 20);
-		strcat(info, "Gauss mz: ");
-		strcat(info, dtostrf(magnetometer_data_gaus[2], 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		
-		memset(info, 0, 50);
-		strcat(info, "rps gx: ");
-		strcat(info, dtostrf(deg_to_rad(gyroscope_data_dps[0]), 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		memset(floats, 0, 20);
-		strcat(info, "rps gy: ");
-		strcat(info, dtostrf(deg_to_rad(gyroscope_data_dps[1]), 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		memset(floats, 0, 20);
-		strcat(info, "rps gz: ");
-		strcat(info, dtostrf(deg_to_rad(gyroscope_data_dps[2]), 10, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		
-		mahony.update(	deg_to_rad(gyroscope_data_dps[0]),
-						deg_to_rad(gyroscope_data_dps[1]),
-						deg_to_rad(gyroscope_data_dps[2]),
-						accelerometer_data_g[0],
-						accelerometer_data_g[1],
-						accelerometer_data_g[2],
-						magnetometer_data_gaus[0],
-						magnetometer_data_gaus[1],
-						magnetometer_data_gaus[2]);
-		
-		roll = mahony.getRoll();
-		yaw = mahony.getYaw();
-		pitch = mahony.getPitch();
-		// update Bluetooth controller with axes info
-		// lets start by just printing to serial :)
-		
-		memset(info, 0, 50);
-		strcat(info, "Float roll: ");
-		strcat(info, dtostrf(roll, 5, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		memset(floats, 0, 20);
-		strcat(info, "Float yaw: ");
-		strcat(info, dtostrf(yaw, 5, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		memset(floats, 0, 20);
-		strcat(info, "Float pitch: ");
-		strcat(info, dtostrf(pitch, 5, 5, floats));
-		strcat(info, "\r\n");
-		UART_tx((unsigned char*)info, strlen(info));
-		
-		_delay_ms(100);
+			//scale_magnetometer(magnetometer_data_gaus);
+				apply_hard_iron_correction(magnetometer_data_gaus);
+				apply_soft_iron_correction(magnetometer_data_gaus);
+				for(uint8_t i = 0; i < 3; ++i){
+					magnetometer_data_gaus[i] = (MAGNETOMETER_RES * magnetometer_data_gaus[i]); // only do magnetometer when program enable = 1
+				}
+					
+			//conversion to appropriate datatypes happens here
+			for(uint8_t i = 0; i < 3; ++i){
+				gyroscope_data_dps[i] = (GYROSCOPE_RES_RPS * (float)gyroscope_data_raw[i]); // incorporating the radian conversion in the constant saves some computation time
+				accelerometer_data_g[i] = (ACCELEROMETER_RES * (float)accelerometer_data_raw[i]);				
+			}
+
+#ifdef SERIAL_INFO
+			memset(info, 0, 50);
+			strcat(info, "dps gx: ");
+			strcat(info, dtostrf(gyroscope_data_dps[0], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			memset(floats, 0, 20);
+			strcat(info, "dps gy: ");
+			strcat(info, dtostrf(gyroscope_data_dps[1], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			memset(floats, 0, 20);
+			strcat(info, "dps gz: ");
+			strcat(info, dtostrf(gyroscope_data_dps[2], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			strcat(info, "mg ax: ");
+			strcat(info, dtostrf(accelerometer_data_g[0], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			memset(floats, 0, 20);
+			strcat(info, "mg ay: ");
+			strcat(info, dtostrf(accelerometer_data_g[1], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			memset(floats, 0, 20);
+			strcat(info, "mg az: ");
+			strcat(info, dtostrf(accelerometer_data_g[2], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			strcat(info, "Gauss mx: ");
+			strcat(info, dtostrf(magnetometer_data_gaus[0], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			memset(floats, 0, 20);
+			strcat(info, "Gauss my: ");
+			strcat(info, dtostrf(magnetometer_data_gaus[1], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			memset(floats, 0, 20);
+			strcat(info, "Gauss mz: ");
+			strcat(info, dtostrf(magnetometer_data_gaus[2], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+#endif
+
+#ifdef SERIAL_INFO
+			memset(info, 0, 50);
+			strcat(info, "rps gx: ");
+			strcat(info, dtostrf(gyroscope_data_dps[0], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			memset(floats, 0, 20);
+			strcat(info, "rps gy: ");
+			strcat(info, dtostrf(gyroscope_data_dps[1], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			memset(floats, 0, 20);
+			strcat(info, "rps gz: ");
+			strcat(info, dtostrf(gyroscope_data_dps[2], 10, 5, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+#endif
+			}
+					
+			mahony.update(	gyroscope_data_dps[0],
+			gyroscope_data_dps[1],
+			gyroscope_data_dps[2],
+			accelerometer_data_g[0],
+			accelerometer_data_g[1],
+			accelerometer_data_g[2],
+			magnetometer_data_gaus[1],
+			magnetometer_data_gaus[0],
+			-magnetometer_data_gaus[2]);
+					
+
+					
+			roll = mahony.getRoll();
+			yaw = mahony.getYaw();
+			pitch = mahony.getPitch();
+			// update Bluetooth controller with axes info
+			// lets start by just printing to serial :)
+			
+			if(loop_cnt == 0){
+								
+			memset(info, 0, 50);
+			strcat(info, "r: ");
+			strcat(info, dtostrf(roll, 3, 1, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			memset(floats, 0, 20);
+			strcat(info, "y: ");
+			strcat(info, dtostrf(yaw, 3, 1, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));
+			memset(info, 0, 50);
+			memset(floats, 0, 20);
+			strcat(info, "p: ");
+			strcat(info, dtostrf(pitch, 3, 1, floats));
+			strcat(info, "\r\n");
+			UART_tx((unsigned char*)info, strlen(info));	
+			}
+			
+			// put arduino to sleep.
+			/*
+			cli();
+			sleep_enable();
+			sei();
+			sleep_cpu();
+			sleep_disable();
+			*/
+			PORTB &= ~(1<<PORTB1);
+		}		
+
     }
 	
 }
@@ -981,4 +1035,23 @@ uint8_t self_test_dislodge(){
 	_delay_ms(20); // after disabling self test one should wait 20 ms according to manual.
 	
 	return 0;
+}
+
+/****************************************************************************
+Sets up TIMER1 (16 bits) in CTC mode to generate an OC interrupt at 200 Hz
+****************************************************************************/
+void TIMER_setup(){
+	TCCR1B |= 0b00001000; // WGM mode CTC
+	OCR1A = 53332; // 8M/(1 * (39999 + 1)) = 200 Hz
+	TIFR1 |= 0x02; // clear any pending OCIE1A interrupts
+	TIMSK1 |= 0x02; // enable OCIE1A interrupt
+	TCCR1B |= 0x01; // select /1 prescaler and start timer
+}
+
+ISR(TIMER1_COMPA_vect){
+	enable_program = 1;
+}
+
+void GPIO_setup_for_timing(){
+	DDRB |= 1 << PORTB1;	
 }
