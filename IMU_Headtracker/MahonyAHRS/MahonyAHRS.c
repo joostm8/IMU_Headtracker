@@ -21,7 +21,7 @@
 // Definitions
 
 //#define sampleFreq	512.0f			// sample frequency in Hz
-#define twoKpDef	(2.0f * 0.5f)	// 2 * proportional gain
+#define twoKpDef	(2.0f * 0.35f)	// 2 * proportional gain
 #define twoKiDef	(2.0f * 0.0f)	// 2 * integral gain
 
 //---------------------------------------------------------------------------------------------------
@@ -238,6 +238,7 @@ float invSqrt(float x) {
 	i = 0x5f3759df - (i>>1);
 	y = *(float*)&i;
 	y = y * (1.5f - (halfx * y * y));
+	y = y * (1.5f - (halfx * y * y));// second iteration hits 99% accuracy in most cases
 	return y;
 }
 

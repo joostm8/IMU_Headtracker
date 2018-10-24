@@ -46,7 +46,8 @@ Includes
 #include <stdint.h>
 #include "TWI_Master.h"
 #include "UART_transceiver.h"
-#include "MahonyAHRS.h"
+//#include "MahonyAHRS.h"
+#include "MadgwickAHRS.h"
 
 /****************************************************************************
 Variables
@@ -123,6 +124,7 @@ int main(void)
 	
 	// Initialise and calibrate MPU9250;
 	MPU_9250_initialise();
+	_delay_ms(100);
 	
 	sprintf(info, "calibrating accelerometer\r\n");
 	UART_tx((unsigned char*)info, strlen(info));
@@ -201,7 +203,7 @@ int main(void)
 			dt = stop > start ? ((float)(stop - start))/1000000.0f : ((float)(UINT16_MAX - (start - stop)))/1000000.0f;
 			start = micros(); // get start time for time delta for next calculation.
 			
-			MahonyAHRSupdate(gyroscope_data_rps[0],
+			MadgwickAHRSupdate(gyroscope_data_rps[0],
 								gyroscope_data_rps[1],
 								gyroscope_data_rps[2],
 								(float)accelerometer_data[0],
@@ -211,7 +213,7 @@ int main(void)
 								magnetometer_data_float[0],
 								-magnetometer_data_float[2]);
 					
-			MahonyAHRSupdateRollPitchYaw();
+			MadgwickAHRSupdateRollPitchYaw();
 			// update Bluetooth controller with axes info
 			// lets start by just printing to serial :)
 						
@@ -273,7 +275,7 @@ uint8_t calibrate_accelerometer(){
 	uint8_t write_cmd[3];
 	write_cmd[0] = MPU_9250_Addr << 1; // write
 	write_cmd[1] = 28; // Accelerometer configuration register
-	write_cmd[2] = 0b00001000; // set ACCEL_FS_SEL to 01 or +/- 4g;
+	write_cmd[2] = 0b00001000; // set ACCEL_FS_SEL to 01 or +/- 4g, DLPC_CFG to 0 (250 Hz)
 	TWI_Start_Transceiver_With_Data(write_cmd, 3);
 	
 	// take 1024 samples to average
