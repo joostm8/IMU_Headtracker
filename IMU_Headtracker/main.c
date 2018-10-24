@@ -163,6 +163,7 @@ int main(void)
 	
 	uint16_t start = micros();
 	uint16_t stop = 0;
+	uint8_t overflow = 0;
 	
 	// algorithm will run as fast as possible.
     while (1) 
@@ -174,10 +175,18 @@ int main(void)
 			
 			apply_accelerometer_offset(accelerometer_data);
 
-			read_magnetometer(magnetometer_data_raw);
+			overflow = read_magnetometer(magnetometer_data_raw);
 				
 			//scale_magnetometer(magnetometer_data_gaus);
-			apply_magnetometer_scaling(magnetometer_data_raw, magnetometer_data_float);
+			if(!overflow){
+				apply_magnetometer_scaling(magnetometer_data_raw, magnetometer_data_float);
+			}
+			else{
+				magnetometer_data_float[0] = 0.0f;
+				magnetometer_data_float[1] = 0.0f;
+				magnetometer_data_float[2] = 0.0f;
+			}
+			
 	
 			//conversion to appropriate datatypes happens here
 			gyroscope_data_rps[0] = (GYROSCOPE_RES_RPS * (float)gyroscope_data_raw[0]);
@@ -651,13 +660,18 @@ uint8_t scale_magnetometer(float* magneto_data){
 /****************************************************************************
 This function reads the magnetometer data. parameter is empty array of x, y, z
 The function assumes the magnetometer is in a measurement mode
+
+returns: 1 when magnetic overflow occurred
+		 0 when no overflow occurred
 ****************************************************************************/
 uint8_t read_magnetometer(int16_t* magneto_data){
 	
 	uint8_t write_cmd[2];
 	write_cmd[0] = AK8963_addr << 1; //Write
 	write_cmd[1] = 0x03; // HXL
-	uint8_t read_cmd[8];
+	uint8_t read_cmd[8]; // one must also read status 2 register as it denotes the end of a read
+	// further it contains the magnetic sensor overflow bit, which must be checked to know if algorithm
+	// may use the magnetometer readings or not.
 	read_cmd[0] = AK8963_addr << 1 | 1; // Read
 			
 	TWI_Start_Transceiver_With_Data(write_cmd, 2);
@@ -668,7 +682,8 @@ uint8_t read_magnetometer(int16_t* magneto_data){
 	magneto_data[1] = read_cmd[4] << 8 | read_cmd[3];
 	magneto_data[2] = read_cmd[6] << 8 | read_cmd[5];
 	
-	return 0;
+	// magneto data[7] is status reg 2
+	return (magneto_data[7] & 0x08) > 0;
 }
 
 /****************************************************************************
