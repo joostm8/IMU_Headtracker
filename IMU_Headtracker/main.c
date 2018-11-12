@@ -92,6 +92,7 @@ void apply_magnetometer_scaling(int16_t*, float*);
 void apply_accelerometer_offset(int16_t*);
 uint8_t self_test_dislodge();
 void GPIO_setup_for_timing();
+void GPIO_initialise();
 void TIMER_setup();
 
 /****************************************************************************
@@ -111,6 +112,9 @@ int main(void)
 	// Initialise UART at 38.4kbaud, the highest baudrate given F_CPU = 8 MHz
 	UART_initialise();
 	
+	// Initialise LED GPIO
+	GPIO_initialise();
+	
 	// enable global interrupts such that the I2C and UART interfaces can operate
 	sei();
 
@@ -123,7 +127,11 @@ int main(void)
 	
 	// Initialise and calibrate MPU9250;
 	MPU_9250_initialise();
-	_delay_ms(100);
+	
+	// Turn on pin 7, indicates to user to put the device on a flat surface
+	PORTD |= 1 << PORTD7;
+	
+	_delay_ms(3000); // 3 second delay for user to put the device down.
 
 #ifdef SERIAL_INFO	
 	sprintf(info, "calibrating accelerometer\r\n");
@@ -131,6 +139,7 @@ int main(void)
 	memset(info, 0, 50);
 #endif
 	
+	// Calibrate accelerometer;
 	calibrate_accelerometer();
 
 #ifdef SERIAL_INFO	
@@ -139,8 +148,15 @@ int main(void)
 	memset(info, 0, 50);
 #endif
 	
+	// Calibrate gyroscope
 	calibrate_gyroscope();
-	// put some code here so you know when to do the 8 pattern.
+	
+	// Turn off pin 7 LED
+	PORTD &= ~(1 << PORTD7);
+	// Turn on pin 6 LED, indicates to start waving 8 pattern
+	PORTD |= 1 << PORTD6;
+	
+	_delay_ms(1000); // 1 sec delay for user response time.
 
 #ifdef SERIAL_INFO	
 	sprintf(info, "Please wave the sensor in an 8 shape\r\n");
@@ -873,6 +889,13 @@ GPIO pin for debug timing purposes.
 ****************************************************************************/
 void GPIO_setup_for_timing(){
 	DDRB |= 1 << PORTB1;	
+}
+
+/****************************************************************************
+Setup pins 6 and 7 for LED output
+****************************************************************************/
+void GPIO_initialise(){
+	DDRD |= (1 << PORTD7) | (1 << PORTD6);
 }
 
 ISR(TIMER1_COMPA_vect){
