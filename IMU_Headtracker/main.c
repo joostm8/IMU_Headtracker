@@ -17,17 +17,7 @@ Macros
 ****************************************************************************/
 #define MPU_9250_Addr 0b1101000 // 7 bit I2C address with AD0 pin to ground
 #define AK8963_addr 0x0C // 7 bit magnetometer address
-
-#define ACCELEROMETER_RES 0.1220703125 // mg/LSB
-#define GYROSCOPE_RES 0.0304878049 // dps/lsb
-#define MAGNETOMETER_RES 0.15 // µT/LSB
-#define PI 3.14159265358979323846
-#define deg_to_rad(deg) (deg * PI / 180.0)
 #define GYROSCOPE_RES_RPS 0.0005321125 // rps/lsb
-
-#ifdef SERIAL_INFO
-#undef SERIAL_INFO
-#endif
 
 // Timer 1 (16 bit) will be set to increment at rate of 1 µs
 // this macro therefore allows for time deltas of up to 65 ms to be measured.
@@ -46,19 +36,16 @@ Includes
 #include <stdint.h>
 #include "TWI_Master.h"
 #include "UART_transceiver.h"
-//#include "MahonyAHRS.h"
 #include "MadgwickAHRS.h"
 
 /****************************************************************************
 Variables
 ****************************************************************************/
 static int16_t hard_iron_correction[3] = {0, 0, 0}; //x, y, z hard iron corrections, subtract from scaled measurements
-static float soft_iron_correction[3] = {0, 0, 0}; //x, y, z soft iron corrections, multiply with scaled and hard corrected measurements
 // also see https://github.com/kriswiner/MPU6050/wiki/Simple-and-Effective-Magnetometer-Calibration
 // precomputed magnetometer scale * soft iron
 static float scale_times_soft_iron[3] = {0, 0, 0};
 static uint8_t magneto_sens_adjust[3] = {0, 0, 0}; // x, y, z sens adjust values
-// perhaps store sens adjust in eeprom since it doesn't change?
 static int16_t accelerometer_offset[3] = {0, 0, 0}; // accelerometer offsets to handle offsetting in SW.
 
 // extern variables used in by MahonyAHRS
@@ -66,31 +53,24 @@ extern volatile float roll, pitch, yaw;
 extern volatile float dt;	
 extern volatile float q0, q1, q2, q3;
 
-static uint8_t BT_command[8] = {0xFD, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-static uint8_t send_BT_cmd = 0;
+static uint8_t BT_command[8] = {0xFD, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // BT command for HID game controller
+static uint8_t send_BT_cmd = 0; // true/false when BT_cmd may be transmitted to BT chip
 
 /****************************************************************************
   Function declarations
 ****************************************************************************/
 void MPU_9250_initialise();
-uint8_t calibrate_accelerometer();
-uint8_t read_accel_bias(int16_t*);
-int8_t set_accel_bias(int16_t*);
-int8_t set_gyro_bias(int16_t*);
-uint8_t calibrate_gyroscope();
-uint8_t calibrate_magnetometer();
-uint8_t scale_magnetometer();
-uint8_t get_magnetometer_scale();
+void calibrate_accelerometer();
+void set_gyro_bias(int16_t*);
+void calibrate_gyroscope();
+void calibrate_magnetometer();
+void get_magnetometer_scale();
 uint8_t read_magnetometer(int16_t*);
-uint8_t scale_magnetometer(float*);
-uint8_t set_accelerometer_4g();
-uint8_t read_accelerometer_data(int16_t*);
-uint8_t read_gyroscope_data(int16_t*);
-uint8_t apply_hard_iron_correction(float*);
-uint8_t apply_soft_iron_correction(float*);
+void scale_magnetometer(float*);
+void read_accelerometer_data(int16_t*);
+void read_gyroscope_data(int16_t*);
 void apply_magnetometer_scaling(int16_t*, float*);
 void apply_accelerometer_offset(int16_t*);
-uint8_t self_test_dislodge();
 void GPIO_setup_for_timing();
 void GPIO_initialise();
 void TIMER_setup();
@@ -98,9 +78,6 @@ void TIMER_setup();
 /****************************************************************************
   Main code
 ****************************************************************************/
-
-static char info[50];
-static char floats[20];
 
 int main(void)
 {
@@ -118,11 +95,6 @@ int main(void)
 	// enable global interrupts such that the I2C and UART interfaces can operate
 	sei();
 
-#ifdef SERIAL_INFO	
-	sprintf(info, "Please put the sensor down on a flat surface\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif
 	_delay_ms(1000);
 	
 	// Initialise and calibrate MPU9250;
@@ -132,21 +104,9 @@ int main(void)
 	PORTD |= 1 << PORTD7;
 	
 	_delay_ms(3000); // 3 second delay for user to put the device down.
-
-#ifdef SERIAL_INFO	
-	sprintf(info, "calibrating accelerometer\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif
 	
 	// Calibrate accelerometer;
 	calibrate_accelerometer();
-
-#ifdef SERIAL_INFO	
-	sprintf(info, "Calibrating Gyro\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif
 	
 	// Calibrate gyroscope
 	calibrate_gyroscope();
@@ -157,23 +117,15 @@ int main(void)
 	PORTD |= 1 << PORTD6;
 	
 	_delay_ms(1000); // 1 sec delay for user response time.
-
-#ifdef SERIAL_INFO	
-	sprintf(info, "Please wave the sensor in an 8 shape\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif
 	
+	// calibrate magnetometer	
 	get_magnetometer_scale();
 	
 	calibrate_magnetometer();
-
-#ifdef SERIAL_INFO	
-	sprintf(info, "You can stop waving now \r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif
 	
+	// turn off LED, so user can stop waving
+	PORTD &= ~(1 << PORTD6);
+
 	//gyro is by now set to 1000 dps, which is ok
 	//magneto is also set in +- 4g so we can move on to main program
 	
@@ -240,28 +192,7 @@ int main(void)
 			// update Bluetooth controller with axes info
 			// lets start by just printing to serial :)
 
-#ifdef SERIAL_INFO						
-			memset(info, 0, 50);
-			strcat(info, "r: ");
-			strcat(info, dtostrf(roll, 4, 0, floats));
-			strcat(info, "\r\n");
-			memset(floats, 0, 20);
-			strcat(info, "y: ");
-			strcat(info, dtostrf(yaw, 4, 0, floats));
-			strcat(info, "\r\n");
-			memset(floats, 0, 20);
-			strcat(info, "p: ");
-			strcat(info, dtostrf(pitch, 4, 0, floats));
-			strcat(info, "\r");
-			memset(floats, 0, 20);
-			strcat(info, "\033[2A");//move cursor up 2 lines
-			UART_tx((unsigned char*)info, strlen(info));
-			// transmit is non blocking, for other code, except other transmit commands
-			// so by making 1 string i can transmit in the backgroudn while continuing other code
-#endif
-		// at the sensor update rate the BT module somtimes crashes
-		// of course I can't find a specified maximum HID update rate in the firmware document...
-		// will try to use TIMER1 to hit 60 Hz update rate.
+		// update BT module at approximately 60 Hz (can't find max supported rate, but at full blast, the BT module experienced crashes)
 		if(send_BT_cmd){
 			send_BT_cmd = 0;
 			BT_command[2] = (int8_t)roll;	//X1
@@ -271,7 +202,7 @@ int main(void)
 		}
 			PORTB &= ~(1<<PORTB1);	
     }
-	
+	return 0;
 }
 
 /****************************************************************************
@@ -295,8 +226,6 @@ void MPU_9250_initialise(){
 	write_cmd[1] = 55; // INT_PIN_CFG
 	write_cmd[2] = 0x02; // BYPASS_EN
 	TWI_Start_Transceiver_With_Data(write_cmd, 3);
-	
-	//possibly set some code here concerning LPF which are now disabled
 }
 
 /****************************************************************************
@@ -304,7 +233,7 @@ Call this function to calibrate the accelerometer.
 It calculates average offsets when the device is on a flat surface, and
 writes these offsets back to the device.
 ****************************************************************************/
-uint8_t calibrate_accelerometer(){
+void calibrate_accelerometer(){
 	// Set accelerometer range to +/- 4g since I expect this range to be used
 	uint8_t write_cmd[3];
 	write_cmd[0] = MPU_9250_Addr << 1; // write
@@ -326,36 +255,12 @@ uint8_t calibrate_accelerometer(){
 		//update rate is 1kHz with default settings
 		_delay_ms(1.1);
 	}
-
-#ifdef SERIAL_INFO	
-	sprintf(info, "Sum ax: %ld\r\n", sum[0]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Sum ay: %ld\r\n", sum[1]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Sum az: %ld\r\n", sum[2]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif
 	
 	// int32_t is a signed long int, so when formatting in formatting functions
 	// one needs to use %ld... Finally solved.
 	sum[0] = (sum[0])/2048;
 	sum[1] = (sum[1])/2048;
 	sum[2] = (sum[2])/2048;
-	
-#ifdef SERIAL_INFO		
-	sprintf(info, "Avg ax: %ld\r\n", sum[0]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Avg ay: %ld\r\n", sum[1]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Avg az: %ld\r\n", sum[2]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif	
 	
 	//take averages, sign inversion is done when setting the biases
 	//note that integer accuracy loss isn't bad because
@@ -368,20 +273,6 @@ uint8_t calibrate_accelerometer(){
 	else
 		accelerometer_offset[2] += 8192; //otherwise, add 1g (8192 LSB);
 	// note that the if else above does not expect more than 1g of offset (shouldn't be the case)
-
-#ifdef SERIAL_INFO		
-	sprintf(info, "Zeroing bias with: %d\r\n", accelerometer_offset[0]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Zeroing bias with: %d\r\n", accelerometer_offset[1]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Zeroing bias with: %d\r\n", accelerometer_offset[2]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif
-	
-	return 0;
 }
 
 /****************************************************************************
@@ -396,7 +287,7 @@ void apply_accelerometer_offset(int16_t* accel_data){
 /****************************************************************************
 Reads accelerometer data, assumes data is being collected continuously
 ****************************************************************************/
-uint8_t read_accelerometer_data(int16_t* accel_data){
+void read_accelerometer_data(int16_t* accel_data){
 	uint8_t write_cmd[3];
 	uint8_t read_cmd[7];
 	write_cmd[0] = MPU_9250_Addr << 1; // write
@@ -408,31 +299,14 @@ uint8_t read_accelerometer_data(int16_t* accel_data){
 	accel_data[0] = read_cmd[1] << 8 | read_cmd[2];
 	accel_data[1] = read_cmd[3] << 8 | read_cmd[4];
 	accel_data[2] = read_cmd[5] << 8 | read_cmd[6];
-	return 0;
 }
-
-/****************************************************************************
-Sets accelerometer in 4g range
-****************************************************************************/
-uint8_t set_accelerometer_4g(){
-	
-	uint8_t write_cmd[3];
-	write_cmd[0] = MPU_9250_Addr << 1; // write
-	write_cmd[1] = 28; // Accelerometer configuration register
-	write_cmd[2] = 0b00001000; // set ACCEL_FS_SEL to 01 or +/- 4g;
-	TWI_Start_Transceiver_With_Data(write_cmd, 3);
-	_delay_ms(100);
-	return 0;
-}
-
-
 
 /****************************************************************************
 Call this function to calibrate the gyroscope.
 It calculates average offsets when the device is on a flat surface, and
 writes these offsets back to the device.
 ****************************************************************************/
-uint8_t calibrate_gyroscope(){
+void calibrate_gyroscope(){
 	// Set gyroscope range to 1000 dps since offset is stored in that format
 	uint8_t write_cmd[3];
 	write_cmd[0] = MPU_9250_Addr << 1; // write
@@ -453,18 +327,6 @@ uint8_t calibrate_gyroscope(){
 		//update rate is 8kHz with default settings
 		_delay_us(125);
 	}
-
-#ifdef SERIAL_INFO		
-	sprintf(info, "Sum gx: %ld\r\n", sum[0]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Sum gy: %ld\r\n", sum[1]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Sum gz: %ld\r\n", sum[2]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif
 	
 	//take averages, sign inversion is done when setting the biases
 	//note that integer accuracy loss isn't bad because
@@ -473,29 +335,15 @@ uint8_t calibrate_gyroscope(){
 	gyro_bias[0] = (int16_t)(sum[0]/2048); //x
 	gyro_bias[1] = (int16_t)(sum[1]/2048); //y
 	gyro_bias[2] = (int16_t)(sum[2]/2048); //z
-
-#ifdef SERIAL_INFO		
-	sprintf(info, "Zeroing bias with: %d\r\n", gyro_bias[0]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Zeroing bias with: %d\r\n", gyro_bias[1]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Zeroing bias with: %d\r\n", gyro_bias[2]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif
 	
 	set_gyro_bias(gyro_bias);
-	
-	return 0;
 }
 
 /****************************************************************************
 This function reads gyroscope data.
 It assumes data is being sampled
 ****************************************************************************/
-uint8_t read_gyroscope_data(int16_t* gyro_data){
+void read_gyroscope_data(int16_t* gyro_data){
 	uint8_t write_cmd[2];
 	uint8_t read_cmd[7];
 	write_cmd[0] = MPU_9250_Addr << 1; // write
@@ -507,14 +355,13 @@ uint8_t read_gyroscope_data(int16_t* gyro_data){
 	gyro_data[0] = read_cmd[1] << 8 | read_cmd[2];
 	gyro_data[1] = read_cmd[3] << 8 | read_cmd[4];
 	gyro_data[2] = read_cmd[5] << 8 | read_cmd[6];
-	return 0;
 }
 
 /****************************************************************************
 This function writes gyroscope biases to the offset registers.
 1000 dps format
 ****************************************************************************/
-int8_t set_gyro_bias(int16_t* gyro_bias){
+void set_gyro_bias(int16_t* gyro_bias){
 	uint8_t data[6] = {0, 0, 0, 0, 0, 0};
 		
 	for(uint8_t i = 0 ; i < 3 ; ++i) {
@@ -533,8 +380,6 @@ int8_t set_gyro_bias(int16_t* gyro_bias){
 	cmd[1] = 19; //XG_OFFSET_H;
 	memcpy(&cmd[2], data, 6);// copy data over
 	TWI_Start_Transceiver_With_Data(cmd, 8);
-	
-	return 0;
 }
 
 /****************************************************************************
@@ -542,7 +387,7 @@ This function gets the hard and soft iron offsets used to correct magnetometer
 values.
 It assumes the magneto is in power down mode at the start.
 ****************************************************************************/
-uint8_t calibrate_magnetometer(){
+void calibrate_magnetometer(){
 	// set magnetometer to 16 bit continuous 100 Hz mode.
 	uint8_t write_cmd[3];
 	write_cmd[0] = AK8963_addr << 1; //Write
@@ -568,35 +413,11 @@ uint8_t calibrate_magnetometer(){
 		}
 		_delay_ms(10);
 	}
-
-#ifdef SERIAL_INFO		
-	for(uint8_t i = 0; i < 3; ++i){
-		sprintf(info, "Max m: %d\r\n", max[i]);
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		sprintf(info, "Min m: %d\r\n", min[i]);
-		UART_tx((unsigned char*)info, strlen(info));
-		memset(info, 0, 50);
-		
-	}
-#endif
 		
 	// now calculate raw hard iron corrections:
 	hard_iron_correction[0] = (max[0] + min[0])/2;
 	hard_iron_correction[1] = (max[1] + min[1])/2;
 	hard_iron_correction[2] = (max[2] + min[2])/2;
-
-#ifdef SERIAL_INFO		
-	sprintf(info, "Hard iron x raw: %d\r\n", hard_iron_correction[0]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Hard iron y raw: %d\r\n", hard_iron_correction[1]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Hard iron z raw: %d\r\n", hard_iron_correction[2]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif
 	
 	// calculate soft iron correction (at once in float since I must scale them afterwards)
 	float soft_iron_raw[3];
@@ -604,66 +425,16 @@ uint8_t calibrate_magnetometer(){
 	soft_iron_raw[1] = (float)((max[1] - min[1])/2);
 	soft_iron_raw[2] = (float)((max[2] - min[2])/2);
 
-#ifdef SERIAL_INFO		
-	strcat(info, "Float soft iron x: ");
-	strcat(info, dtostrf(soft_iron_raw[0], 5, 5, floats));
-	strcat(info, "\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	memset(floats, 0, 20);
-	strcat(info, "Float soft iron y: ");
-	strcat(info, dtostrf(soft_iron_raw[1], 5, 5, floats));
-	strcat(info, "\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	memset(floats, 0, 20);
-	strcat(info, "Float soft iron z: ");
-	strcat(info, dtostrf(soft_iron_raw[2], 5, 5, floats));
-	strcat(info, "\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	memset(floats, 0, 20);
-#endif
-
 	// scale soft iron
 	// not reallt needed to scale it here, could save 2 floating point multiplications
 	float* soft_iron_scaled = soft_iron_raw;
 	scale_magnetometer(soft_iron_scaled);
-
-#ifdef SERIAL_INFO		
-	strcat(info, "Scl Float soft iron x: ");
-	strcat(info, dtostrf(soft_iron_scaled[0], 5, 5, floats));
-	strcat(info, "\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	memset(floats, 0, 20);
-	strcat(info, "Scl Float soft iron y: ");
-	strcat(info, dtostrf(soft_iron_scaled[1], 5, 5, floats));
-	strcat(info, "\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	memset(floats, 0, 20);
-	strcat(info, "Scl Float soft iron z: ");
-	strcat(info, dtostrf(soft_iron_scaled[2], 5, 5, floats));
-	strcat(info, "\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	memset(floats, 0, 20);
-#endif
 	
 	// scaling only needs to be done here on avg_rad
 	float avg_rad = soft_iron_scaled[0] + soft_iron_scaled[1] + soft_iron_scaled[2];
 	avg_rad /= 3.0;
-
-#ifdef SERIAL_INFO		
-	strcat(info, "avg rad");
-	strcat(info, dtostrf(avg_rad, 5, 5, floats));
-	strcat(info, "\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	memset(floats, 0, 20);
-#endif
 	
+	float soft_iron_correction[3] = {0, 0, 0};
 	soft_iron_correction[0] = avg_rad/soft_iron_scaled[0];
 	soft_iron_correction[1] = avg_rad/soft_iron_scaled[1];
 	soft_iron_correction[2] = avg_rad/soft_iron_scaled[2];
@@ -671,46 +442,16 @@ uint8_t calibrate_magnetometer(){
 	scale_times_soft_iron[0] = (((float)magneto_sens_adjust[0] - 128.0) / 256.0 + 1.0) * soft_iron_correction[0];
 	scale_times_soft_iron[1] = (((float)magneto_sens_adjust[1] - 128.0) / 256.0 + 1.0) * soft_iron_correction[1];
 	scale_times_soft_iron[2] = (((float)magneto_sens_adjust[2] - 128.0) / 256.0 + 1.0) * soft_iron_correction[2];
-
-#ifdef SERIAL_INFO		
-	strcat(info, "Scl Float soft iron x: ");
-	strcat(info, dtostrf(scale_times_soft_iron[0], 5, 5, floats));
-	strcat(info, "\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	memset(floats, 0, 20);
-	strcat(info, "Scl Float soft iron y: ");
-	strcat(info, dtostrf(soft_iron_correction[1], 5, 5, floats));
-	strcat(info, "\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	memset(floats, 0, 20);
-	strcat(info, "Scl Float soft iron z: ");
-	strcat(info, dtostrf(soft_iron_correction[2], 5, 5, floats));
-	strcat(info, "\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	memset(floats, 0, 20);
-	
-	sprintf(info, "soft iron done\r\n");
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif	
-	// There is no need to power down the magnetometer again, because hereafter
-	// the normal program flow will commence.
-	return 0;
 }
 
 /****************************************************************************
 This function scales magnetometer readings with the scale adjustment values.
 scaling happens in place
 ****************************************************************************/
-uint8_t scale_magnetometer(float* magneto_data){
+void scale_magnetometer(float* magneto_data){
 	magneto_data[0] = magneto_data[0] * (((float)magneto_sens_adjust[0] - 128) * 0.5 / 128.0 + 1.0);
 	magneto_data[1] = magneto_data[1] * (((float)magneto_sens_adjust[1] - 128) * 0.5 / 128.0 + 1.0);
 	magneto_data[2] = magneto_data[2] * (((float)magneto_sens_adjust[2] - 128) * 0.5 / 128.0 + 1.0);
-	
-	return 0;
 }
 
 /****************************************************************************
@@ -747,7 +488,7 @@ This function gets the magnetometer scale adjustment, used later on in the
 program.
 It assumes the magneto is in power down mode at the start.
 ****************************************************************************/
-uint8_t get_magnetometer_scale(){
+void get_magnetometer_scale(){
 	//First set magnetometer in Fuse ROM Access mode
 	uint8_t write_cmd[3];
 	write_cmd[0] = AK8963_addr << 1; //Write
@@ -769,18 +510,6 @@ uint8_t get_magnetometer_scale(){
 	magneto_sens_adjust[1] = read_cmd[2];
 	magneto_sens_adjust[2] = read_cmd[3];
 
-#ifdef SERIAL_INFO		
-	sprintf(info, "X scale factor: %d\r\n", magneto_sens_adjust[0]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Y scale factor: %d\r\n", magneto_sens_adjust[1]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-	sprintf(info, "Z scale factor: %d\r\n", magneto_sens_adjust[2]);
-	UART_tx((unsigned char*)info, strlen(info));
-	memset(info, 0, 50);
-#endif
-
 	//Finally put the magnetometer back in power down mode
 	memset(write_cmd, 0, 3);
 	write_cmd[0] = AK8963_addr << 1; //Write
@@ -790,28 +519,6 @@ uint8_t get_magnetometer_scale(){
 	// datasheet asks to wait 100 µs before transitioning to other modes,
 	// delay here to be sure this is respected
 	_delay_us(100);
-	
-	return 0;
-}
-
-/****************************************************************************
-Applies hard iron correction on magnetometer readings
-****************************************************************************/
-uint8_t apply_hard_iron_correction(float* magneto_data){
-	magneto_data[0] = magneto_data[0] - hard_iron_correction[0];
-	magneto_data[1] = magneto_data[1] - hard_iron_correction[1];
-	magneto_data[2] = magneto_data[2] - hard_iron_correction[2];
-	return 0;
-}
-
-/****************************************************************************
-Applies soft iron correction on magnetometer readings
-****************************************************************************/
-uint8_t apply_soft_iron_correction(float* magneto_data){
-	magneto_data[0] = magneto_data[0] * soft_iron_correction[0];
-	magneto_data[1] = magneto_data[1] * soft_iron_correction[1];
-	magneto_data[2] = magneto_data[2] * soft_iron_correction[2];
-	return 0;
 }
 
 /****************************************************************************
@@ -832,46 +539,6 @@ void apply_magnetometer_scaling(int16_t* data_raw, float* data_calibrated){
 	data_calibrated[1] = (data_raw[1] - hard_iron_correction[1]) * scale_times_soft_iron[1];
 	data_calibrated[2] = (data_raw[2] - hard_iron_correction[2]) * scale_times_soft_iron[2];
 }
-
-/****************************************************************************
-the function assumes both acceleromter and gyroscope are on.
-****************************************************************************/
-/*
-uint8_t self_test_dislodge(){
-	
-	uint8_t write_cmd[3];
-	write_cmd[0] = MPU_9250_Addr << 1; //Write
-	write_cmd[1] = 27; // Gyro Config
-	write_cmd[2] = 0b11100000; // enables just the self test, all other bits default 0
-	TWI_Start_Transceiver_With_Data(write_cmd, 3);
-	//The Gyro is now in self test mode.
-	
-	memset(write_cmd, 0, 3);
-	write_cmd[0] = MPU_9250_Addr << 1; //Write
-	write_cmd[1] = 28; // Accelerometer config
-	write_cmd[2] = 0b11100000; // enables just the self test, all other bits default 0
-	TWI_Start_Transceiver_With_Data(write_cmd, 3);
-	//The accelerometer is now in self test mode.
-	
-	_delay_ms(100); //give the sensor some time to dislodge.
-	
-	memset(write_cmd, 0, 3);
-	write_cmd[0] = MPU_9250_Addr << 1; //Write
-	write_cmd[1] = 27; // Accelerometer config
-	write_cmd[2] = 0x00; // reset
-	TWI_Start_Transceiver_With_Data(write_cmd, 3);
-	
-	memset(write_cmd, 0, 3);
-	write_cmd[0] = MPU_9250_Addr << 1; //Write
-	write_cmd[1] = 28; // Accelerometer config
-	write_cmd[2] = 0x00; // reset
-	TWI_Start_Transceiver_With_Data(write_cmd, 3);
-	
-	_delay_ms(20); // after disabling self test one should wait 20 ms according to manual.
-	
-	return 0;
-}
-*/
 
 /****************************************************************************
 Sets up TIMER1 (16 bits) in normal mode at 1 µs steps
@@ -898,6 +565,9 @@ void GPIO_initialise(){
 	DDRD |= (1 << PORTD7) | (1 << PORTD6);
 }
 
+/****************************************************************************
+ISR for TIMER1 compare match event
+****************************************************************************/
 ISR(TIMER1_COMPA_vect){
 	//The update rate won't be exactly 60 Hz since there will be some jitter
 	// due to the transmission not occuring instantly, only at the end of
