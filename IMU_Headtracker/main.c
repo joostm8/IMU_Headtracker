@@ -178,15 +178,15 @@ int main(void)
 			dt = stop > start ? ((float)(stop - start))/1000000.0f : ((float)(UINT16_MAX - (start - stop)))/1000000.0f;
 			start = micros(); // get start time for time delta for next calculation.
 			
-			MadgwickAHRSupdate(gyroscope_data_rps[0],
+			MadgwickAHRSupdate( -gyroscope_data_rps[0],
 								gyroscope_data_rps[1],
-								gyroscope_data_rps[2],
-								(float)accelerometer_data[0],
-								(float)accelerometer_data[1],
-								(float)accelerometer_data[2],
-								magnetometer_data_float[1],
+								-gyroscope_data_rps[2],
+								(float)(-accelerometer_data[0]),
+								(float)(accelerometer_data[1]),
+								(float)(-accelerometer_data[2]),
+								-magnetometer_data_float[1],
 								magnetometer_data_float[0],
-								-magnetometer_data_float[2]);
+								magnetometer_data_float[2]);
 					
 			MadgwickAHRSupdateRollPitchYaw(); // move this within the BT transmit code perhaps since it's only needed there?.
 			// update Bluetooth controller with axes info
