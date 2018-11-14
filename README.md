@@ -56,3 +56,7 @@ I've provided some STL files for a small 3D printable box that can mount the dif
 If you want to attempt an IMU-headtracker project yourself, you might bump into some issues. In that case a debugger is your best friend, or if you don't have a debugger, a UART serial connection with some debug info is your best friend, however, do ensure you format your serial printouts correctly!
 - an *int32_t* is defined as "signed long int" in stdint.h, so to print a correctly formatted string, use *%ld*
 - float (*%f*) formatting is not supported by the AVR-libc *sprintf* function, therefore you must first use *dtostrf* , then use *strcat* to obtain a printout of a floating point number.
+
+## License
+The provided code is licensed under the GPLv3 license. The Microchip TWI library retains its own license.
+
