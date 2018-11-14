@@ -45,10 +45,14 @@ Note that I inserted an ON-OFF switch on the OUT+ line of the TC4056A, but this 
 I've provided some STL files for a small 3D printable box that can mount the different components. The HC-05 I used was mounted on the standard blue breakout PCB, the MPU9250 is one of those modules mounted on the purple PCB. You'll have to stack the PCBs using pin headers, with a double layer of black spacers to achieve the correct spacing. On the HC-05, the TX, RX and GND pins match up, and on the MPU-9250 the SDA and SCL pins match up (granted you mount it **upside down**). Other pins can be connected with some servo wire. Note to self: provide a picture, that will be clearer.
 
 ## Some more remarks
+### Application specific tips
+- The Invense MPU9250 has built-in accelerometer calibration registers, however, even with their provided code (MPU Hardware Offset Registers Application Note) I could not get this to work correctly, therefore I did the accelerometer offsets in software. Gyroscope offset registers works fine.
+- The more readily available RN42 manual has an incorrect specification of the joystick gamepad report format. Instead just use the format as described in https://mitxela.com/projects/bluetooth_hid_gamepad.
+- The MadgwickAHRS algorithm does not care about the unit of the magnetometer and accelerometer readings, so don't waste computing time converting those readings to the correct unit. The gyroscope inputs do expect an input in radians per second.
 - One might notice how there is some sign inversion happening on the input of the AHRS algorithm, that's because I mounted the MPU9250 upside down in the box.
 - The LEDs help when starting the headtracker. When the LED on PIN7 goes on, you must place the headtracker on a flat surface, because it calculates the acceleromter and gyroscope offsets. When the LED on PIN6 goes on, you must wave the headtracker in a 8 shaped motion to calibrate the magnetometer (like you would do with your cellphone).
 
-## Tips and tricks
+### General debugging tips
 If you want to attempt an IMU-headtracker project yourself, you might bump into some issues. In that case a debugger is your best friend, or if you don't have a debugger, a UART serial connection with some debug info is your best friend, however, do ensure you format your serial printouts correctly!
 - an *int32_t* is defined as "signed long int" in stdint.h, so to print a correctly formatted string, use *%ld*
 - float (*%f*) formatting is not supported by the AVR-libc *sprintf* function, therefore you must first use *dtostrf* , then use *strcat* to obtain a printout of a floating point number.
