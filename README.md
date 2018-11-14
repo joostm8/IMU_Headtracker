@@ -51,6 +51,7 @@ I've provided some STL files for a small 3D printable box that can mount the dif
 - The MadgwickAHRS algorithm does not care about the unit of the magnetometer and accelerometer readings, so don't waste computing time converting those readings to the correct unit. The gyroscope inputs do expect an input in radians per second.
 - One might notice how there is some sign inversion happening on the input of the AHRS algorithm, that's because I mounted the MPU9250 upside down in the box.
 - The LEDs help when starting the headtracker. When the LED on PIN7 goes on, you must place the headtracker on a flat surface, because it calculates the acceleromter and gyroscope offsets. When the LED on PIN6 goes on, you must wave the headtracker in a 8 shaped motion to calibrate the magnetometer (like you would do with your cellphone).
+- The uploaded code is an Atmel Studio project.
 
 ### General debugging tips
 If you want to attempt an IMU-headtracker project yourself, you might bump into some issues. In that case a debugger is your best friend, or if you don't have a debugger, a UART serial connection with some debug info is your best friend, however, do ensure you format your serial printouts correctly!
